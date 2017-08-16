@@ -19,7 +19,8 @@ acme/static/css/jquery_unused*
 acme/static/*/visualrdf*
 acme/static/*/lodlive*
 env*/
-scripts*
+scripts/_rsync*
+scripts/rsync*
 acme/tests/schemas*
 tmp/
 Data.fs*
