@@ -25,11 +25,15 @@ from acme.lib import base58
 blockfields = [
     "hash",  # "00000023b7804672de7559631ff6efc289be6cc7769fb8b896b426e586dec50e",
     "height",  # 1022289,
+    "primechain",
+    "primeorigin",
     "merkleroot",  # "fdc2bfea56e34cd7151daf003a0cec15cec609894d855e64cb4d94da72b9a313",
     "time",  # "2017-06-22 04:42:33 UTC",
     "difficulty",  # 0.01316071,
+    "transition",  # 0.01316071,
     "previousblockhash",  # "0000003bc14e3e76127e581a04abcec2d63d2bd5d57c0c74ad53eca4c5f0a1ab",
     "nextblockhash",  # "290ead74bd4f1ab33824da7d3b39fe74d066957df0a5051949ff753fbf9e2455",
+    "headerhash",  # "00000023b7804672de7559631ff6efc289be6cc7769fb8b896b426e586dec50e",
     "tx",  # ["ea2d62761c79f84a416793f68430e5c161ec0a1fab52c427c276efe42a29d0ec base", "2017-06-22 11:39:52 UTC", " 0000000000000000000000000000000000000000000000000000000000000000 -1", " out 18.02 03578ab34f OP_CHECKSIG"]
 ]
 
@@ -121,7 +125,7 @@ def home(request):
 
     blocks = calendarise(request, blocks)
     request.tmpl_context.blocks = blocks
-    request.tmpl_context.difflag = difflag(blocks, scheme=['proof-of-work', 'proof-of-stake', 'proof-of-burn'])
+    request.tmpl_context.difflag = difflag(blocks, scheme=['proof-of-work'])
     return request.tmpl_context.__dict__
 
 
@@ -771,11 +775,41 @@ def blockbrowser(request):
     return request.tmpl_context.__dict__
 
 
+@view_config(route_name='chain', renderer='acme:templates/chain.mako')
+def chain(request):
+    binfo = request.tmpl_context.coin['binfo']
+    with open('acme/static/css/primechains.json', 'r') as fp:
+        request.tmpl_context.primelists = json.loads(fp.read())
+    fp.close()
+    request.tmpl_context.flds = [
+        'height',
+        'primechain',
+        'primedigit',
+        'mineraddress',
+        'primeorigin',
+        'primorialform',
+        'time',
+        'ismine', 
+    ]
+    request.tmpl_context.dump = ""
+    return request.tmpl_context.__dict__
+
+    # mineraddress:
+    # primorialform:
+    # height:
+    # primechain:
+    # primedigit:
+    # primeorigin:
+    # time: 2013-11-17 19:26:34 UTC
+    # epoch: 1384716394
+    # ismine
+
+
 @view_config(route_name='test', renderer='acme:templates/test.mako')
 def test(request):
     binfo = request.tmpl_context.coin['binfo']
     sparqlquery = \
-        "http://localhost:3030/slmchain/sparql?query=SELECT+*+WHERE" \
+        "http://localhost:3030/dtcchain/sparql?query=SELECT+*+WHERE" \
         "+%7B%3Fs+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23height%3E+" \
         "1000+.+%3Fs+%3Fp+%3Fo+.+%7D"
     request.tmpl_context.sparqljson = \
@@ -783,3 +817,5 @@ def test(request):
     request.tmpl_context.query = request.matchdict.get('arg')
     request.tmpl_context.dump = ""
     return request.tmpl_context.__dict__
+
+

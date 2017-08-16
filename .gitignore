@@ -10,14 +10,14 @@ coverage.xml
 build/
 dist/
 .tox/
-acme/static/*/visualrdf*
-acme/static/*/lodlive*
 __pycache__
 nosetests.xml
 data/slm*
 data/logs*
 acme/static/js/jquery_unused*
 acme/static/css/jquery_unused*
+acme/static/*/visualrdf*
+acme/static/*/lodlive*
 env*/
 scripts*
 acme/tests/schemas*

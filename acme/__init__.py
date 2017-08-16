@@ -127,6 +127,7 @@ def main(global_config, **settings):
     # config.add_route('exchange', '/{net}/ex/')
     config.add_route('sparql', '/{net}/sparql')
     config.add_route('search', '/{net}/search/{arg}')
+    config.add_route('chain', '/{net}/chain/')
     config.add_route('blockbrowser', '/{net}/blockbrowser/')
     config.add_route('test', '/{net}/test/')
 

@@ -56,6 +56,7 @@
     <div class="ui simple dropdown item">
       <i class="yellow ticket icon"></i>Publications <i class="dropdown icon"></i>
       <div class="menu">
+        <a class="item" href="${request.route_url('chain', net=net)|n}">Chains</a>
         <a class="item" href="${request.route_url('publications', net=net)|n}">Recently-published items</a>
       </div>
     </div>
@@ -63,14 +64,14 @@
     <div class="ui simple dropdown item">
       <i class="yellow cubes icon"></i> Connections <i class="dropdown icon"></i>
       <div class="menu">
-        <a class="item" href="https://bitcointalk.org/index.php?topic=0.0">Discussion Thread</a>
-        <a class="item" href="https://github.com/${coin['name'].lower()}-project/${coin['name'].lower()}">Github</a>
-        <a class="item" href="https://twitter.com/${coin['name'].lower()}">#${coin['name'].lower()}coin @ Twitter</a>
+        <a class="item" href="https://bitcointalk.org/index.php?topic=325735.0">Discussion Thread</a>
+        <a class="item" href="https://github.com/datacoin-project/datacoin">Github</a>
+        <a class="item" href="https://twitter.com/datacoin">#datacoin @ Twitter</a>
         <div class="item">
           <i class="dropdown icon"></i>
           Block Explorers
           <div class="menu transition hidden" tabindex="-1">
-            <a class="item" href="#">Placeholder</a>
+            <a class="item" href="http://www.bytestamp.net">Bytestamp</a>
           </div>
         </div>
       </div>

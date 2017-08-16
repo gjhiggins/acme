@@ -18,7 +18,7 @@
             <h5 class="ui blue inverted header">Resources</h5>
             <div class="ui inverted link list">
               <a class="item" href="https://iancoleman.github.io/bip39/">BIP39 key generator</a>
-              <a class="item" href="https://github.com/${coin['name'].lower()}-project">${coin['name']} source</a>
+              <a class="item" href="https://github.com/datacoin-project">${coin['name']} source</a>
               <a class="item" href="https://github.com/gjhiggins/acme" target="_blank">ACME source</a>
               <a class="item" href="https://github.com/gjhiggins/acme/issues" target="_blank">ACME issue tracker</a>
             </div>
@@ -28,16 +28,18 @@
             <h5 class="ui blue inverted header">Social media</h5>
             <div class="ui inverted link list">
               <a class="item" href="https://bitcointalk.org/index.php?topic=325735.0;all">Bitcointalk discussion</a>
-              <a class="item" href="https://twitter.com/${coin['name'].lower()}">Twitter</a>
-              <a class="item" href="http://en.bitcoinwiki.org/${coin['name']}">Bitcoin wiki</a>
-              <a class="item" href="https://www.reddit.com/r/${coin['name']}">Reddit forum</a>
+              <a class="item" href="https://twitter.com/datacoin">Twitter</a>
+              <a class="item" href="http://en.bitcoinwiki.org/Datacoin">Bitcoin wiki</a>
+              <a class="item" href="https://www.reddit.com/r/Datacoin">Reddit forum</a>
             </div>
           </div>
 
           <div class="four wide column">
-            <h5 class="ui blue inverted header">${coin['name']} Network</h5>
+            <h5 class="ui blue inverted header">Datacoin Network</h5>
             <div class="ui inverted link list">
-              <a class="item" href="http://${coin['name'].lower()}coin.info">${coin['name'].lower()}coin.info</a>
+              <a class="item" href="http://datacoin.info">datacoin.info</a>
+              <a class="item" href="http://datacoininfo.org">datacoininfo.org</a>
+              <a class="item" href="http://www.bytestamp.net">bytestamp.net</a>
             </div>
           </div>
         </div>
@@ -49,9 +51,9 @@
     </style>
     <script type="text/javascript">
     $(document).ready(function() {
-      // $.api.settings.api = {
-      //   search : '/${net}/search/{query}'
-      // }
+      $.api.settings.api = {
+        search : '/${net}/search/{query}'
+      }
       $('#addnodes').click(function(){
         $('#addnodesmodal').modal('show');
       });
@@ -72,7 +74,7 @@
       $('span')
         .humaneDates();
       // get first result from standard search
-      // $('.ui.search').search({source: false, selectFirstResult: true, searchFullText: false, minCharacters: 4}, 'get result', '1');
+      $('.ui.search').search({source: false, selectFirstResult: true, searchFullText: false, minCharacters: 4}, 'get result', '1');
 
       // var acmens = {};
       // acmens.Table = sgvizler.chartsAdd(
