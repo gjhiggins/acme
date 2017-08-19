@@ -96,20 +96,15 @@ def main(global_config, **settings):
     config.include('pyramid_mako')
 
     config.add_static_view(
-        name='static',
-        path='acme:static/', cache_max_age=3600)
+        name='static', path='acme:static/', cache_max_age=3600)
     config.add_static_view(
-        name='css',
-        path='acme:static/css/', cache_max_age=3600)
+        name='css', path='acme:static/css/', cache_max_age=3600)
     config.add_static_view(
-        name='fonts',
-        path='acme:static/fonts/', cache_max_age=3600)
+        name='fonts', path='acme:static/fonts/', cache_max_age=3600)
     config.add_static_view(
-        name='js',
-        path='acme:static/js/', cache_max_age=3600)
+        name='js', path='acme:static/js/', cache_max_age=3600)
     config.add_static_view(
-        name='img',
-        path='acme:static/img/', cache_max_age=3600)
+        name='img', path='acme:static/img/', cache_max_age=3600)
 
     config.add_route('home', '/')
     config.add_route('index', '/{net}/')
@@ -124,38 +119,25 @@ def main(global_config, **settings):
     config.add_route('publication', '/{net}/pb/{arg}')
     config.add_route('address', '/{net}/addr/{arg}')
     config.add_route('network', '/{net}/net/')
-    # config.add_route('exchange', '/{net}/ex/')
     config.add_route('sparql', '/{net}/sparql')
     config.add_route('search', '/{net}/search/{arg}')
     config.add_route('blockbrowser', '/{net}/blockbrowser/')
     config.add_route('test', '/{net}/test/')
 
-    # _session_factory = SignedCookieSessionFactory('roadrunner')
-    # config.set_session_factory(_session_factory)
+    _session_factory = SignedCookieSessionFactory('roadrunner')
+    config.set_session_factory(_session_factory)
 
     config.add_subscriber('acme.subscribers.handle_setup', 'pyramid.events.NewRequest')
 
-    # config.add_translation_dirs('acme:locale')
-    # config = api(config)
+    config.add_translation_dirs('acme:locale')
 
     config.add_notfound_view(RemoveSlashNotFoundViewFactory())
+
     config.scan()
 
     app = config.make_wsgi_app()
 
-    # app = HttpMethodOverrideMiddleware(app)
+    app = HttpMethodOverrideMiddleware(app)
 
     return app
 
-
-# def api(config):
-#     """Dicstring."""
-#     # =======  Gallery controller ===========================================
-#     apihandler = "acme.views.api.ApiHandler"
-
-#     config.add_handler(
-#         "api_index", "/api",
-#         handler=apihandler, action="index",
-#         custom_predicates=(allowed_methods('GET'),))
-
-#     return config
