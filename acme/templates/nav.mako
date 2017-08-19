@@ -87,7 +87,7 @@
           <div class="results"></div>
         </div>
       </div>
-      <a class="item">Source code</a>
+      <a class="item" href="https://github.com/gjhiggins/acme/tree/slimcoin" title="Github repository"><i class="yellow github icon"></i> Github</a>
     </div>
   </div>
 </div>
