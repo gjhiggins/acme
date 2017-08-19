@@ -7,6 +7,7 @@ import pyqrcode
 import base64
 import io
 import requests
+import textwrap
 from collections import defaultdict
 from datetime import datetime
 from binascii import unhexlify
@@ -334,7 +335,7 @@ def blk(request):
                     ktime = datetime.fromtimestamp(v).isoformat()
                 else:
                     ktime = datetime.strptime(v, '%Y-%m-%d %H:%M:%S %Z').isoformat()
-                    cnt += '''<div>{}: <span>{}</span></span> <span class="glit">{}</div>'''.format(k, v, ktime)
+                cnt += '''<div>{}: <span>{}</span></span> <span class="glit">{}</div>'''.format(k, v, ktime)
                 oitems[k] = ktime
             else:
                 cnt += '''<div>{}: <span>{}</span></div>'''.format(k, v)
@@ -591,23 +592,22 @@ def addr(request):
 @view_config(route_name='publications', renderer='acme:templates/publications.mako')
 def pbs(request):
     binfo = request.tmpl_context.coin['binfo']
-    dumpq = """\
-# SPARQL query:
+    dumpq = textwrap.dedent("""\
+        # SPARQL query:
 
-PREFIX ccy: &lt;http://purl.org/net/bel-epa/ccy#&gt;
-SELECT ?tx ?bh ?txo ?dt ?asm
-WHERE {
-  ?tx ccy:output ?txo .
-  ?txo ccy:pkasm ?asm .
-  ?tx ccy:blockhash ?bh .
-  ?tx ccy:time ?dt .
-  FILTER regex(?asm, "OP_RETURN")
-} ORDER BY DESC(?dt)
+        PREFIX ccy: &lt;http://purl.org/net/bel-epa/ccy#&gt;
+        SELECT ?tx ?bh ?txo ?dt ?asm
+        WHERE {
+          ?tx ccy:output ?txo .
+          ?txo ccy:pkasm ?asm .
+          ?tx ccy:blockhash ?bh .
+          ?tx ccy:time ?dt .
+          FILTER regex(?asm, "OP_RETURN")
+        } ORDER BY DESC(?dt)
 
-# Results:
+        # Results:
 
-"""
-
+        """)
     query = request.tmpl_context.endpoint + "/" + \
         request.tmpl_context.dataset + "/sparql" + \
         "?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy" \
@@ -773,11 +773,12 @@ def blockbrowser(request):
 
 @view_config(route_name='test', renderer='acme:templates/test.mako')
 def test(request):
+    sym = request.tmpl_context.coin['symbol'].lower()
     binfo = request.tmpl_context.coin['binfo']
     sparqlquery = \
-        "http://localhost:3030/slmchain/sparql?query=SELECT+*+WHERE" \
+        "http://localhost:3030/{sym}chain/sparql?query=SELECT+*+WHERE" \
         "+%7B%3Fs+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23height%3E+" \
-        "1000+.+%3Fs+%3Fp+%3Fo+.+%7D"
+        "1000+.+%3Fs+%3Fp+%3Fo+.+%7D".format(sym)
     request.tmpl_context.sparqljson = \
         requests.get(sparqlquery).content.decode('utf-8')
     request.tmpl_context.query = request.matchdict.get('arg')
