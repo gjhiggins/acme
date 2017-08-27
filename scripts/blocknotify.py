@@ -8,10 +8,9 @@ import blocknotifybase
 
 global blockhash
 debug = False
-test = True
-maxblocks = 10
+test = False
 
-sym = blocknotify.mainnet.get('symbol').lower()
+sym = blocknotifybase.mainnet.get('symbol').lower()
 
 
 class TestMainnetBlockNotify(blocknotifybase.TestNotifyCase):

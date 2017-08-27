@@ -10,7 +10,7 @@ import blocknotifybase
 global blockhash
 debug = False
 test = False
-maxblocks = 100000
+maxblocks = 50000
 
 sym = blocknotifybase.mainnet.get('symbol').lower()
 
@@ -46,11 +46,12 @@ class TestCatchUp(blocknotifybase.TestNotifyCase):
         if test:
             print(self.g.serialize(format="n3").decode('utf-8'))
         else:
-            with open('/tmp/{s}.nt'.format(s=sym), 'w') as fp:
+            with open('/tmp/{s}-{g}.nt'.format(s=sym, g=gblocks), 'w') as fp:
                 fp.write(self.g.serialize(format="nt").decode('utf-8'))
             subprocess.getstatusoutput(
-                "/opt/acme/fuseki2/bin/s-post http://localhost:3030/{s}chain/data default /tmp/{s}.nt".format(s=sym))
-            os.unlink("/tmp/{s}.nt".format(s=sym))
+                "/opt/acme/fuseki2/bin/s-post http://localhost:3030/{s}chain/data default /tmp/{s}-{g}.nt".format(s=sym, g=gblocks))
+            # os.unlink("/tmp/{s}-{g}.nt".format(s=sym, g=gblocks))
+        print("Added {} blocks, height now {}".format(maxblocks, gblocks + maxblocks))
 
 
 if __name__ == "__main__":
