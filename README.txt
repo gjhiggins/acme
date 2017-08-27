@@ -99,3 +99,7 @@ http://xpm.muuttuja.org/charts/
 
 Right now it's about 1.94 chains/min. So the total 'chainsperday' of the whole network would be about 2793 chains/day.
 
+
+---
+
+Apertus is a blockchain reader/writer that currently uses non-redeemable destination addresses as a free-form 20-byte field to immutably store data onto a blockchain. The data is referenced and retrieved by Apertus using the final transaction id of the process; the root id. Coins used are forever burned into the blockchain in a process we call "etching." It may take hundreds, or even thousands, of micro-transactions to archive your data depending on the cryptocurrency you are using and the amount of data you are archiving. Coins used in the archive process cannot be recovered, and once archived, the data cannot be altered in any way. Make sure you have triple checked your data for errors before archiving.

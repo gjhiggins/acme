@@ -7,6 +7,7 @@ import pyqrcode
 import base64
 import io
 import requests
+import textwrap
 from collections import defaultdict
 from datetime import datetime
 from binascii import unhexlify
@@ -19,7 +20,7 @@ from acme.lib.helpers import (
     genesistxhash
 )
 import acme.lib.svgdatashapes as sd
-import acme.lib.svgdatashapes_dt as sdt   # for da
+import acme.lib.svgdatashapes_dt as sdt
 from acme.lib import base58
 
 blockfields = [
@@ -87,24 +88,38 @@ def home(request):
             request.tmpl_context.coin.get('addrs'))
     binfo = request.tmpl_context.coin['binfo']
     request.tmpl_context.timestamp = datetime.now()
-    blcn = request.tmpl_context.acmerpc.call(
+
+    bhash = request.tmpl_context.acmerpc.call(
         'getblock', request.tmpl_context.acmerpc.call(
             'getblockhash', binfo['blocks']))
     val = request.query_string
     try:
         request.tmpl_context.coin['lastblocktime'] = datetime.fromtimestamp(
-            blcn['time'])
+            bhash['time'])
     except TypeError:
         request.tmpl_context.coin['lastblocktime'] = datetime.strptime(
-            blcn['time'], "%Y-%m-%d %H:%M:%S %Z")
+            bhash['time'], "%Y-%m-%d %H:%M:%S %Z")
     request.tmpl_context.now = datetime.utcnow()
-    query = request.tmpl_context.endpoint + '/' + request.tmpl_context.dataset + "/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0Aselect++(SUM(%3Fvalue)+as+%3Ftotal_slm_burned)+WHERE%0A%7B+%3Ftxo+ccy%3Aaddress+ccy%3ASfSLMCoinMainNetworkBurnAddr1DeTK5+.%0A++%3Ftxo+ccy%3Avalue+%3Fvalue%0A%7D" if 'proof-of-burn' in request.tmpl_context.scheme else ''
-    request.tmpl_context.netburnedcoins = json.loads(requests.get(query).content.decode('utf-8'))['results']['bindings'][0]['total_slm_burned']['value']if 'proof-of-burn' in request.tmpl_context.scheme else 0
+
+    qs = "/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%" + \
+         "2Fccy%23%3E%0Aselect++(SUM(%3Fvalue)+as+%3Ftotal_slm_burned)+WHERE%0A" + \
+         "%7B+%3Ftxo+ccy%3Aaddress+ccy%3ASfSLMCoinMainNetworkBurnAddr1DeTK5+.%0" + \
+         "A++%3Ftxo+ccy%3Avalue+%3Fvalue%0A%7D" \
+         if 'proof-of-burn' in request.tmpl_context.scheme else ''
+    query = request.tmpl_context.endpoint + '/' + request.tmpl_context.dataset + qs
+    request.tmpl_context.netburnedcoins = json.loads(
+        requests.get(query).content.decode('utf-8'))[
+            'results']['bindings'][0]['total_slm_burned']['value'] \
+        if 'proof-of-burn' in request.tmpl_context.scheme else 0
 
     diff = request.tmpl_context.acmerpc.call('getdifficulty')
-    request.tmpl_context.curpowdiff = '{:.6f}'.format(diff['proof-of-work'] if isinstance(diff, dict) else diff) if 'proof-of-work' in request.tmpl_context.scheme else 0
-    request.tmpl_context.curposdiff = '{:.6f}'.format(diff['proof-of-stake']) if 'proof-of-stake' in request.tmpl_context.scheme else 0
-    request.tmpl_context.curhashrate = request.tmpl_context.acmerpc.call(request.tmpl_context.coin.get('nethashcmd'))
+    request.tmpl_context.curpowdiff = '{:.6f}'.format(
+        diff['proof-of-work'] if isinstance(diff, dict) else diff) \
+        if 'proof-of-work' in request.tmpl_context.scheme else 0
+    request.tmpl_context.curposdiff = '{:.6f}'.format(diff['proof-of-stake']) \
+        if 'proof-of-stake' in request.tmpl_context.scheme else 0
+    request.tmpl_context.curhashrate = request.tmpl_context.acmerpc.call(
+        request.tmpl_context.coin.get('nethashcmd'))
 
     blocks = []
     toffset = int(val) if val is not None and val != '' else binfo['blocks']
@@ -112,7 +127,11 @@ def home(request):
         bhash = request.tmpl_context.acmerpc.call('getblockhash', bnum)
         bblock = request.tmpl_context.acmerpc.call('getblock', bhash)
         bdiff = bblock.get('difficulty', -1)
-        btime = datetime.fromtimestamp(bblock['time']) if isinstance(bblock['time'], int) else datetime.strptime(bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
+        btime = datetime.fromtimestamp(
+            bblock['time']) \
+            if isinstance(bblock['time'], int) \
+            else datetime.strptime(
+                bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
         valout_accumulator = 0
         for numtx, txid in enumerate(bblock['tx']):
             tx = request.tmpl_context.acmerpc.call('getrawtransaction', txid, 1)
@@ -137,23 +156,37 @@ def index(request):
             request.tmpl_context.acmerpc.call('getpeerinfo'))
     binfo = request.tmpl_context.coin['binfo']
     request.tmpl_context.timestamp = datetime.now()
-    blcn = request.tmpl_context.acmerpc.call(
+    bhash = request.tmpl_context.acmerpc.call(
         'getblock', request.tmpl_context.acmerpc.call(
             'getblockhash', binfo['blocks']))
     val = request.query_string
     try:
         request.tmpl_context.coin['lastblocktime'] = datetime.fromtimestamp(
-            blcn['time'])
+            bhash['time'])
     except TypeError:
         request.tmpl_context.coin['lastblocktime'] = datetime.strptime(
-            blcn['time'], "%Y-%m-%d %H:%M:%S %Z")
+            bhash['time'], "%Y-%m-%d %H:%M:%S %Z")
     request.tmpl_context.now = datetime.utcnow()
-    query = request.tmpl_context.endpoint + '/' + request.tmpl_context.dataset + "/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0Aselect++(SUM(%3Fvalue)+as+%3Ftotal_slm_burned)+WHERE%0A%7B+%3Ftxo+ccy%3Aaddress+ccy%3ASfSLMCoinMainNetworkBurnAddr1DeTK5+.%0A++%3Ftxo+ccy%3Avalue+%3Fvalue%0A%7D" if 'proof-of-burn' in request.tmpl_context.scheme else ''
-    request.tmpl_context.netburnedcoins = json.loads(requests.get(query).content.decode('utf-8'))['results']['bindings'][0]['total_slm_burned']['value'] if 'proof-of-burn' in request.tmpl_context.scheme else 0
+    qs = "/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2" + \
+         "Fccy%23%3E%0Aselect++(SUM(%3Fvalue)+as+%3Ftotal_slm_burned)+WHERE%0A%7" + \
+         "B+%3Ftxo+ccy%3Aaddress+ccy%3ASfSLMCoinMainNetworkBurnAddr1DeTK5+.%0A++" + \
+         "%3Ftxo+ccy%3Avalue+%3Fvalue%0A%7D" \
+         if 'proof-of-burn' in request.tmpl_context.scheme else ''
+    query = request.tmpl_context.endpoint + '/' + request.tmpl_context.dataset + qs
+
+    request.tmpl_context.netburnedcoins = json.loads(
+        requests.get(query).content.decode('utf-8'))[
+            'results']['bindings'][0]['total_slm_burned']['value'] \
+        if 'proof-of-burn' in request.tmpl_context.scheme else 0
     diff = request.tmpl_context.acmerpc.call('getdifficulty')
-    request.tmpl_context.curpowdiff = '{:.6f}'.format(diff['proof-of-work'] if isinstance(diff, dict) else diff) if 'proof-of-work' in request.tmpl_context.scheme else 0
-    request.tmpl_context.curposdiff = '{:.6f}'.format(diff['proof-of-stake']) if 'proof-of-stake' in request.tmpl_context.scheme else 0
-    request.tmpl_context.curhashrate = request.tmpl_context.acmerpc.call(request.tmpl_context.coin.get('nethashcmd'))
+    request.tmpl_context.curpowdiff = '{:.6f}'.format(
+        diff['proof-of-work'] if isinstance(diff, dict) else diff) \
+        if 'proof-of-work' in request.tmpl_context.scheme else 0
+    request.tmpl_context.curposdiff = '{:.6f}'.format(
+        diff['proof-of-stake']) \
+        if 'proof-of-stake' in request.tmpl_context.scheme else 0
+    request.tmpl_context.curhashrate = request.tmpl_context.acmerpc.call(
+        request.tmpl_context.coin.get('nethashcmd'))
 
     blocks = []
     toffset = int(val) if val is not None and val != '' else binfo['blocks']
@@ -161,10 +194,11 @@ def index(request):
         bhash = request.tmpl_context.acmerpc.call('getblockhash', bnum)
         bblock = request.tmpl_context.acmerpc.call('getblock', bhash)
         bdiff = bblock.get('difficulty', -1)
-        if request.tmpl_context.coin.get('blockdateformat', 'formatted') == 'seconds':
+        if request.tmpl_context.coin.get('blockdateformat') == 'seconds':
             btime = datetime.fromtimestamp(bblock['time'])
         else:
-            btime = datetime.strptime(bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
+            btime = datetime.strptime(
+                bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
         valout_accumulator = 0
         for numtx, txid in enumerate(bblock['tx']):
             tx = request.tmpl_context.acmerpc.call('getrawtransaction', txid, 1)
@@ -172,8 +206,8 @@ def index(request):
                 for vout in tx['vout']:
                     valout_accumulator += vout['value']
         blocks.append(
-            [bnum, bhash, bdiff, bblock.get('flags', 'proof-of-work'), bblock['time'],
-             btime, 0, numtx + 1, valout_accumulator])
+            [bnum, bhash, bdiff, bblock.get('flags', 'proof-of-work'),
+             bblock['time'], btime, 0, numtx + 1, valout_accumulator])
 
     blocks = calendarise(request, blocks)
     request.tmpl_context.blocks = blocks
@@ -189,18 +223,23 @@ def blocks(request):
         'getblock', request.tmpl_context.acmerpc.call(
             'getblockhash', binfo['blocks']))
     val = request.query_string
-    if request.tmpl_context.coin.get('blockdateformat', 'formatted') == 'seconds':
+    if request.tmpl_context.coin.get('blockdateformat') == 'seconds':
         btime = datetime.fromtimestamp(bblock['time'])
     else:
-        btime = datetime.strptime(bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
+        btime = datetime.strptime(
+            bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
     request.tmpl_context.now = datetime.utcnow()
     # request.tmpl_context.coin['sincelastblock'] = (datetime.now() - request.tmpl_context.coin['lastblocktime']).seconds
     request.tmpl_context.neffectiveburncoins = '{}'.format(
         bblock.get('Formatted nEffectiveBurnCoins', -1))
     diff = request.tmpl_context.acmerpc.call('getdifficulty')
-    request.tmpl_context.curpowdiff = '{:.6f}'.format(diff['proof-of-work'] if isinstance(diff, dict) else diff) if 'proof-of-work' in request.tmpl_context.scheme else 0
-    request.tmpl_context.curposdiff = '{:.6f}'.format(diff['proof-of-stake']) if 'proof-of-stake' in request.tmpl_context.scheme else 0
-    request.tmpl_context.curhashrate = request.tmpl_context.acmerpc.call(request.tmpl_context.coin.get('nethashcmd'))
+    request.tmpl_context.curpowdiff = '{:.6f}'.format(
+        diff['proof-of-work'] if isinstance(diff, dict) else diff) \
+        if 'proof-of-work' in request.tmpl_context.scheme else 0
+    request.tmpl_context.curposdiff = '{:.6f}'.format(diff['proof-of-stake']) \
+        if 'proof-of-stake' in request.tmpl_context.scheme else 0
+    request.tmpl_context.curhashrate = request.tmpl_context.acmerpc.call(
+        request.tmpl_context.coin.get('nethashcmd'))
 
     blocks = []
     toffset = int(val) if val is not None and val != '' else binfo['blocks']
@@ -220,18 +259,21 @@ def blocks(request):
                 for vout in tx['vout']:
                     valout_accumulator += vout['value']
         blocks.append(
-            [bnum, bhash, bdiff, bblock.get('flags', 'proof-of-work'), bblock['time'],
-             btime, 0, numtx + 1, valout_accumulator])
+            [bnum, bhash, bdiff, bblock.get('flags', 'proof-of-work'),
+             bblock['time'], btime, 0, numtx + 1, valout_accumulator])
     blocks = calendarise(request, blocks)
     pag = '''<div class="item">'''
+    # TODO: refactor
     if toffset != -1:
-        pag += '''<a class="item" {}">'''.format('href="/?{}"'.format(toffset - int(request.tmpl_context.nbpp)))
+        pag += '''<a class="item" {}">'''.format('href="/?{}"'.format(
+            toffset - int(request.tmpl_context.nbpp)))
         pag += '''<button class="ui right floated mini primary button" style="margin-right:12em">Older</button></a>'''
     else:
         pag += '''<a class="item"">'''
         pag += '''<button class="ui right floated disabled mini primary button" style="margin-right:12em">Older</button></a>'''
     if toffset < binfo['blocks']:
-        pag += '''<a class="item" {}>'''.format('href="/?{}"'.format(toffset + int(request.tmpl_context.nbpp)))
+        pag += '''<a class="item" {}>'''.format('href="/?{}"'.format(
+            toffset + int(request.tmpl_context.nbpp)))
         pag += '''<button class="ui left floated mini primary button" style="margin-left:12em">Newer</button></a>'''
     else:
         pag += '''<a class="item">'''
@@ -261,7 +303,8 @@ def blocklist(request):
         if request.tmpl_context.coin.get('blockdateformat', 'formatted') == 'seconds':
             btime = datetime.fromtimestamp(bblock['time'])
         else:
-            btime = datetime.strptime(bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
+            btime = datetime.strptime(
+                bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
         valout_accumulator = 0
         for numtx, txid in enumerate(bblock['tx']):
             if txid == genesistxhash:
@@ -275,15 +318,20 @@ def blocklist(request):
             [bnum, bhash, bdiff, bblock.get('flags', 'proof-of-work'), bblock['time'],
              btime, 0, numtx + 1, valout_accumulator])
     blocks = calendarise(request, blocks)
+    # TODO: refactor
     pag = '''<div class="item">'''
     if toffset != -1:
-        pag += '''<a class="item" {}">'''.format('href="{}"'.format(request.route_url('blocklist', net=request.tmpl_context.net, arg=toffset - int(request.tmpl_context.nbpp))))
+        pag += '''<a class="item" {}">'''.format('href="{}"'.format(
+            request.route_url('blocklist', net=request.tmpl_context.net,
+                              arg=toffset - int(request.tmpl_context.nbpp))))
         pag += '''<button class="ui right floated mini primary button" style="margin-right:12em">Older</button></a>'''
     else:
         pag += '''<a class="item"">'''
         pag += '''<button class="ui right floated disabled mini primary button" style="margin-right:12em">Older</button></a>'''
     if toffset < binfo['blocks']:
-        pag += '''<a class="item"{}>'''.format(' href="{}"'.format(request.route_url('blocklist', net=request.tmpl_context.net, arg=toffset + int(request.tmpl_context.nbpp))))
+        pag += '''<a class="item"{}>'''.format(' href="{}"'.format(
+            request.route_url('blocklist', net=request.tmpl_context.net,
+                              arg=toffset + int(request.tmpl_context.nbpp))))
         pag += '''<button class="ui left floated mini primary button" style="margin-left:12em">Newer</button></a>'''
     else:
         pag += '''<a class="item">'''
@@ -298,6 +346,11 @@ def blocklist(request):
 def blk(request):
     binfo = request.tmpl_context.coin['binfo']
     val = request.matchdict.get('arg', genesisblockhash)
+    try:
+        val = int(val)
+        val = request.tmpl_context.acmerpc.call('getblockhash', val)
+    except:
+        pass
     nblock = request.tmpl_context.acmerpc.call('getblock', val)
     request.tmpl_context.dump = '''<pre>{}</pre>'''.format(
         json.dumps(nblock, sort_keys=True, indent=2, separators=(',', ': ')))
@@ -313,8 +366,8 @@ def blk(request):
                 if 'base' in tx[0]:
                     txid = tx[0].strip().split(' ')[0]
                     oitems['txids'].append(txid)
-                    cnt += """<span>{}: <a href="/tx/{}"><span>{}</span></a></span><br />""".format(
-                        k, txid, txid)
+                    cnt += """<span>{k}: <a href="{r}"><span>{i}</span></a></span><br />""".format(
+                        k=k, r=request.route_url('transaction', net=net, arg=txid), i=txid)
                     rtx = request.tmpl_context.acmerpc.call('getrawtransaction', txid, 1)
                     if not rtx:
                         pass
@@ -328,17 +381,20 @@ def blk(request):
                     else:
                         rtx = request.tmpl_context.acmerpc.call('getrawtransaction', txid, 1)
                         if not rtx:
-                            raise Exception("rawtransaction returned no details for tx id {}".format(txid))
+                            raise Exception("rawtransaction returned no details for tx id {}".format(
+                                txid))
         else:  # block fields
             oitems[k] = v
             if k in ['previousblockhash', 'nextblockhash']:
-                cnt += '''<div>{k}: <a href="{r}"><span>{v}</span></a></div/>'''.format(k=k, r=request.route_url('block', net=net, arg=v), v=v)
+                cnt += '''<div>{k}: <a href="{r}"><span>{v}</span></a></div/>'''.format(
+                    k=k, r=request.route_url('block', net=net, arg=v), v=v)
             elif k == 'time':
                 if isinstance(v, int):
                     ktime = datetime.fromtimestamp(v).isoformat()
                 else:
                     ktime = datetime.strptime(v, '%Y-%m-%d %H:%M:%S %Z').isoformat()
-                    cnt += '''<div>{}: <span>{}</span></span> <span class="glit">{}</div>'''.format(k, v, ktime)
+                    cnt += '''<div>{}: <span>{}</span></span> <span class="glit">{}</div>'''.format(
+                        k, v, ktime)
                 oitems[k] = ktime
             else:
                 cnt += '''<div>{}: <span>{}</span></div>'''.format(k, v)
@@ -361,10 +417,13 @@ def txs(request):
         txs.append([[
             request.tmpl_context.acmerpc.call('getrawtransaction', txid, 1) for txid in bblock['tx']],
             bblock['height'],
-            datetime.strptime(bblock['time'], request.tmpl_context.coin.get('txdateformat')).isoformat()
+            datetime.strptime(
+                bblock['time'], 
+                request.tmpl_context.coin.get('txdateformat')).isoformat()
         ])
     request.tmpl_context.txs = txs
-    request.tmpl_context.dump = '''<pre>{}</pre>'''.format(json.dumps(txs, sort_keys=True, indent=2, separators=(',', ': ')))
+    request.tmpl_context.dump = '''<pre>{}</pre>'''.format(
+        json.dumps(txs, sort_keys=True, indent=2, separators=(',', ': ')))
     return request.tmpl_context.__dict__
 
 
@@ -376,7 +435,8 @@ def tx(request):
     if val == genesistxhash:
         tx = genesistx
     else:
-        tx = request.tmpl_context.acmerpc.call('getrawtransaction', val, 1)
+        tx = request.tmpl_context.acmerpc.call(
+            'getrawtransaction', val.split('-')[0], 1)
     assert tx is not False
     request.tmpl_context.dump = '''<pre>{}</pre>'''.format(
         json.dumps(tx, sort_keys=True, indent=2, separators=(',', ': ')))
@@ -386,7 +446,8 @@ def tx(request):
         tx['hex'] = ''
     txattrs = {
         'date': datetime.fromtimestamp(tx.get('time')),
-        'height': request.tmpl_context.acmerpc.call('getblock', tx.get('blockhash')).get('height')
+        'height': request.tmpl_context.acmerpc.call(
+            'getblock', tx.get('blockhash')).get('height')
     }
     for attr in ['confirmations', 'blockhash', 'txid', 'IsBurnTx']:
         attrval = tx.get(attr)
@@ -395,7 +456,8 @@ def tx(request):
     request.tmpl_context.inputs = []
     for v in tx['vin']:
         if v.get('txid') is not None:
-            ptx = request.tmpl_context.acmerpc.call('getrawtransaction', v.get('txid'), 1)
+            ptx = request.tmpl_context.acmerpc.call(
+                'getrawtransaction', v.get('txid'), 1)
             v['confirmations'] = ptx['confirmations']
             if ptx['vin'][0].get('coinbase') is not None:
                 v['amount'] = ptx['vout'][0]['value']
@@ -406,15 +468,21 @@ def tx(request):
         request.tmpl_context.inputs.append(v)
     request.tmpl_context.outputs = []
     for i, v in enumerate(tx['vout']):
-        if v.get('scriptPubKey') is not None and v.get('scriptPubKey').get('type') != 'nonstandard':
+        if v.get('scriptPubKey') is not None \
+                and v.get('scriptPubKey').get('type') != 'nonstandard':
             try:
                 v['address'] = v['scriptPubKey']['addresses'][0]
             except:
                 v['address'] = tx['vout'][i - 1]['scriptPubKey']['addresses'][0]
             buff = io.BytesIO()
             url = pyqrcode.create(v.get('address'))
-            url.svg(buff, scale=2, module_color='#cacaca', xmldecl=True, svgns=True, title="{}".format(v.get('address')), svgclass='pyqrcode', lineclass='pyqrline', omithw=False, debug=False)
-            v['qrcode'] = 'data:image/svg+xml;base64,' + base64.b64encode(buff.getvalue()).decode('utf-8')
+            url.svg(
+                buff, scale=2, module_color='#cacaca', xmldecl=True, svgns=True, title="{}".format(
+                    v.get('address')),
+                svgclass='pyqrcode',
+                lineclass='pyqrline', omithw=False, debug=False)
+            v['qrcode'] = 'data:image/svg+xml;base64,' + base64.b64encode(
+                buff.getvalue()).decode('utf-8')
             vasm = textwrap.wrap(v.get('scriptPubKey').get('asm', ''), width=30)
             vhex = textwrap.wrap(v.get('scriptPubKey').get('hex', ''), width=30)
             v['scriptPubKeynice'] = dict(asm=vasm, hex=vhex)
@@ -439,7 +507,8 @@ def nodes(request):
             else:
                 pass
         if nodes[i]['addr'] not in known:
-            res = json.loads(requests.get("http://freegeoip.net/json/{}".format(node['addr'].rsplit(':')[0])).content.decode('utf-8'))
+            res = json.loads(requests.get("http://freegeoip.net/json/{}".format(
+                node['addr'].rsplit(':')[0])).content.decode('utf-8'))
             nodes[i]['geoloc'] = res
         else:
             nodes[i]['geoloc'] = known[nodes[i]['geolod']]
@@ -469,8 +538,10 @@ def nodes(request):
     request.registry.settings['nodes'] = known
     dump = json.dumps(nodes, sort_keys=True, indent=2, separators=(',', ': '))
     request.tmpl_context.nodes = nodes
-    request.tmpl_context.versions = [dict(label=k, value=v) for k, v in versions.items()]
-    request.tmpl_context.cchosts = json.dumps([[k, v] for k, v in hits.items()])
+    request.tmpl_context.versions = [
+        dict(label=k, value=v) for k, v in versions.items()]
+    request.tmpl_context.cchosts = json.dumps(
+        [[k, v] for k, v in hits.items()])
     request.tmpl_context.dump = dump
     return request.tmpl_context.__dict__
 
@@ -526,7 +597,8 @@ def addr(request):
         'arg', '4b8b6856954392a8484c9520a2f3ec55ac0ecb93dcb466da27fb25eba0f785ff')
     request.tmpl_context.adattrs = {}
     request.tmpl_context.adattrs['addr'] = val
-    request.tmpl_context.adattrs['pubkeyhash'] = binascii.hexlify(base58.decode(val)).decode('utf-8')
+    request.tmpl_context.adattrs['pubkeyhash'] = binascii.hexlify(
+        base58.decode(val)).decode('utf-8')
 
     """
     # SPARQL query returning outputs for an address
@@ -542,13 +614,13 @@ def addr(request):
 
     PREFIX ccy: <http://purl.org/net/bel-epa/ccy#>
     SELECT DISTINCT ?tx ?datetime ?addr ?value WHERE {
-      ccy:${adattrs.get('address', 'ShooqRfkshDajLTvYMEKRKxXW7ooZLBZsm')} ccy:tx ?tx .
+      ccy:VFouUCS3gM3yrTdKHkyKoLGbPcWC8mp4A4  ccy:tx ?tx .
       ?tx ccy:input ?txi .
       ?tx ccy:output ?txo .
       ?tx ccy:time ?datetime .
       ?txo ccy:value ?value .
       ?txo ccy:address ?addr
-    } ORDER BY DESC(?datetime)"
+    } ORDER BY DESC(?datetime)
     """
 
     outputqstr = \
@@ -595,22 +667,22 @@ def addr(request):
 @view_config(route_name='publications', renderer='acme:templates/publications.mako')
 def pbs(request):
     binfo = request.tmpl_context.coin['binfo']
-    dumpq = """\
-# SPARQL query:
+    dumpq = textwrap.dedent(
+        """# SPARQL query:
 
-PREFIX ccy: &lt;http://purl.org/net/bel-epa/ccy#&gt;
-SELECT ?tx ?bh ?txo ?dt ?asm
-WHERE {
-  ?tx ccy:output ?txo .
-  ?txo ccy:pkasm ?asm .
-  ?tx ccy:blockhash ?bh .
-  ?tx ccy:time ?dt .
-  FILTER regex(?asm, "OP_RETURN")
-} ORDER BY DESC(?dt)
+        PREFIX ccy: &lt;http://purl.org/net/bel-epa/ccy#&gt;
+        SELECT ?tx ?bh ?txo ?dt ?asm
+        WHERE {
+          ?tx ccy:output ?txo .
+          ?txo ccy:pkasm ?asm .
+          ?tx ccy:blockhash ?bh .
+          ?tx ccy:time ?dt .
+          FILTER regex(?asm, "OP_RETURN")
+        } ORDER BY DESC(?dt)
 
-# Results:
+        # Results:
 
-"""
+        """)
 
     query = request.tmpl_context.endpoint + "/" + \
         request.tmpl_context.dataset + "/sparql" + \
@@ -721,7 +793,9 @@ def net(request):
 
         # render red bars
         for dp in data:
-            sd.bar(x=sdt.toint(dp[0]), y=dp[1], color='#4f4', width=5, opacity=0.6)
+            sd.bar(
+                x=sdt.toint(dp[0]), y=dp[1],
+                color='#4f4', width=5, opacity=0.6)
         # return the svg.  The caller could then add it in to the rendered HTML.
         return sd.svgresult()
 
@@ -819,3 +893,23 @@ def test(request):
     return request.tmpl_context.__dict__
 
 
+@view_config(route_name='dashboard', renderer='acme:templates/dashboard.mako')
+def dashboard(request):
+    binfo = request.tmpl_context.coin['binfo']
+    """
+        PREFIX ccy: <http://purl.org/net/bel-epa/ccy#>
+        SELECT ?block ?height WHERE {
+            ?block ccy:height ?height
+        } ORDER BY DESC(?height) LIMIT 1
+    """
+    qs = "/sparql?query=PREFIX+rdf%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F" + \
+         "02%2F22-rdf-syntax-ns%23%3E%0ASELECT+%3Fsubject+%3Fheight+WHERE+%" + \
+         "7B+%3Fsubject+rdf%3Atype+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa" + \
+         "%2Fccy%23Block%3E+.+%3Fsubject+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fb" + \
+         "el-epa%2Fccy%23height%3E+%3Fheight+%7D+ORDER+BY+DESC(%3Fheight)+LIMIT+1"
+    query = request.tmpl_context.endpoint + '/' + request.tmpl_context.dataset + qs
+    request.tmpl_context.gblocks = json.loads(
+        requests.get(query).content.decode('utf-8'))[
+            'results']['bindings'][0]['height']['value']
+    request.tmpl_context.dump = ""
+    return request.tmpl_context.__dict__

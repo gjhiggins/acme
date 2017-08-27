@@ -3,8 +3,11 @@ import unittest
 from datetime import datetime, timedelta, tzinfo
 import json
 import re
+import os
 import requests
+import textwrap
 import time
+import binascii
 from rdflib import (
     Namespace,
     URIRef,
@@ -15,7 +18,7 @@ from rdflib.namespace import RDF, XSD, SKOS
 import configparser
 
 config = configparser.ConfigParser()
-config.read('coin.ini')
+config.read(os.path.dirname(os.path.abspath(__file__)) + '/coin.ini')
 mainnet = dict((key, config['mainnet'][key]) for key in config['mainnet'])
 testnet = dict((key, config['testnet'][key]) for key in config['testnet'])
 
@@ -91,52 +94,51 @@ blockfields = [
 ]
 
 
-doacc_rubric_n3 = """
-@prefix dc: <http://purl.org/dc/elements/1.1/> .
-@prefix doacc: <http://purl.org/net/bel-epa/doacc#> .
-@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@prefix xml: <http://www.w3.org/XML/1998/namespace> .
-@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+doacc_rubric_n3 = textwrap.dedent("""
+    @prefix dc: <http://purl.org/dc/elements/1.1/> .
+    @prefix doacc: <http://purl.org/net/bel-epa/doacc#> .
+    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+    @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+    @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+    @prefix xml: <http://www.w3.org/XML/1998/namespace> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-doacc:D6b7dd05f-19f2-4b36-833d-f4bda4be58f5 a doacc:Cryptocurrency ;
-    dc:description "Slimcoin burn mining is truly ASIC-proof."@en ;
-    doacc:block-reward "50"^^xsd:string ;
-    doacc:block-time 90 ;
-    doacc:date-founded "2014-05-28"^^xsd:date ;
-    doacc:distribution-scheme doacc:Dc10c93fb-f7ec-40cd-a06e-7890686f6ef8 ;
-    doacc:image "datacoin_dat.png"^^xsd:string ;
-    doacc:incept "2014-05"^^xsd:string ;
-    doacc:pow doacc:D28483031-b854-4853-9a35-e1daf97e4c59 ;
-    doacc:protection-scheme doacc:D493eab2e-eeba-496d-afca-c9372c6efe9a ;
-    doacc:protocol doacc:Dede0f611-3a23-4794-b768-0740933a5ff6 ;
-    doacc:retarget-time "continuous"^^xsd:string ;
-    doacc:reward-modifier "var/diff"^^xsd:string ;
-    doacc:symbol "SLM"@en ;
-    doacc:total-coins "250000000"^^xsd:string ;
-    skos:prefLabel "Slimcoin"@en .
+    doacc:Dc74ed816-06ae-4b2a-b51a-3ac190810b1e a doacc:Cryptocurrency ;
+        dc:description "Fork of primecoin. Data Coin - DataCoin Abbreviation: DTC Algorithm: SCRYPT Date Founded: 10/16/2013 Total Coins: 2 Million Confirm Per Transaction: 6 Re-Target Time: Every Block Block Time: 1 Minute Block Reward: 999 Coins Diff Adjustment: Every Block Premine:."@en ;
+        doacc:block-reward "999"^^xsd:string ;
+        doacc:block-time 60 ;
+        doacc:cloneOf doacc:Da0432a24-2a3e-4bd9-b691-6bf28cd0a1a9 ;
+        doacc:confirmations "6"^^xsd:string ;
+        doacc:date-founded "2013-11-17"^^xsd:date ;
+        doacc:image "datacoin_dtc.png"^^xsd:string ;
+        doacc:incept "2013-11"^^xsd:string ;
+        doacc:pow doacc:D38ff1442-5d46-4c97-8950-3fbbdf705a0d ;
+        doacc:premine "0"^^xsd:string ;
+        doacc:protection-scheme doacc:D451a49d8-c9e7-46e5-8b8d-bcbe16f75c24 ;
+        doacc:protocol doacc:Dede0f611-3a23-4794-b768-0740933a5ff6 ;
+        doacc:retarget-time "1 block"^^xsd:string ;
+        doacc:source <https://github.com/foo1inge/datacoin> ;
+        doacc:symbol "DTC"@en ;
+        doacc:total-coins "200000000"^^xsd:string ;
+        doacc:website <http://datacoin.info/> ;
+        skos:prefLabel "数据币"@cn,
+            "Datacoin"@en .
 
-doacc:Dc10c93fb-f7ec-40cd-a06e-7890686f6ef8 a doacc:DistributionScheme ;
-    dc:description "Dissemination via proof of work"@en ;
-    rdfs:isDefinedBy <http://purl.org/net/bel-epa/doacc> ;
-    skos:prefLabel "pow"@en .
+    doacc:D38ff1442-5d46-4c97-8950-3fbbdf705a0d a doacc:PoWscheme ;
+        dc:description "Cunningham primes"@en ;
+        rdfs:isDefinedBy <http://purl.org/net/bel-epa/doacc> ;
+        skos:prefLabel "primechain"@en .
 
-doacc:D28483031-b854-4853-9a35-e1daf97e4c59 a doacc:PoWscheme ;
-    dc:description "SHA256 made difficult to parallelise via using leapfrog hashing"@en ;
-    rdfs:isDefinedBy <http://purl.org/net/bel-epa/doacc> ;
-    skos:prefLabel "dcrypt"@en .
 
-doacc:D493eab2e-eeba-496d-afca-c9372c6efe9a a doacc:ProtectionScheme ;
-    dc:description "Proof-of-Work plus Proof-of-Stake augmented by Proof-of-Burn"@en ;
-    rdfs:isDefinedBy <http://purl.org/net/bel-epa/doacc> ;
-    skos:prefLabel "pob"@en .
+    doacc:D451a49d8-c9e7-46e5-8b8d-bcbe16f75c24 a doacc:ProtectionScheme ;
+        dc:description "Consensus mechanism obtained from Proof-of-Work"@en ;
+        rdfs:isDefinedBy <http://purl.org/net/bel-epa/doacc> ;
+        skos:prefLabel "pow"@en .
 
-doacc:Dede0f611-3a23-4794-b768-0740933a5ff6 a doacc:Protocol ;
-    dc:description "Bitcoin"@en ;
-    rdfs:isDefinedBy <http://purl.org/net/bel-epa/doacc> ;
-    skos:prefLabel "bitcoin"@en .
-"""
+    doacc:Dede0f611-3a23-4794-b768-0740933a5ff6 a doacc:Protocol ;
+        dc:description "Bitcoin"@en ;
+        rdfs:isDefinedBy <http://purl.org/net/bel-epa/doacc> ;
+        skos:prefLabel "bitcoin"@en .""")
 
 blockprops = dict(
     bits="http://purl.org/net/bel-epa/ccy#bits",

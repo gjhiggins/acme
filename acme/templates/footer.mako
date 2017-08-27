@@ -17,6 +17,7 @@
           <div class="four wide column">
             <h5 class="ui blue inverted header">Resources</h5>
             <div class="ui inverted link list">
+              <a class="item" href="${request.route_url('dashboard', net=net)}" title="Dashboard">Dashboard</a>
               <a class="item" href="https://iancoleman.github.io/bip39/">BIP39 key generator</a>
               <a class="item" href="https://github.com/datacoin-project">${coin['name']} source</a>
               <a class="item" href="https://github.com/gjhiggins/acme" target="_blank">ACME source</a>

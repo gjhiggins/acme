@@ -1,8 +1,9 @@
 #! /usr/bin/env python3
 import unittest
-import subprocess
 import os
-from rdflib import URIRef, RDF 
+import requests
+import subprocess
+from rdflib import (URIRef, RDF) 
 import blocknotifybase
 
 global blockhash
@@ -38,7 +39,7 @@ class TestTestnetBlockNotify(blocknotifybase.TestNotifyCase):
             with open('/tmp/{s}t.nt'.format(s=sym), 'w') as fp:
                 fp.write(self.g.serialize(format="nt").decode('utf-8'))
             subprocess.getstatusoutput(
-                "/opt/acme/fuseki/bin/s-post http://localhost:3030/{s}tchain/data default /tmp/{s}t.n3".format(
+                "/opt/acme/fuseki2/bin/s-post http://localhost:3030/{s}tchain/data default /tmp/{s}t.n3".format(
                     s=sym))
             os.unlink('/tmp/{s}t.nt'.format(s=sym))
 

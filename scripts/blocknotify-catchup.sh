@@ -1,4 +1,2 @@
 #!/bin/bash
-pushd /opt/acme/datacoin-acme/acme/scripts
-/opt/acme/datacoin-acme/bin/python3 blocknotify-catchup.py
-popd
+/opt/acme/datacoin-acme/bin/python3 /opt/acme/datacoin-acme/acme/scripts/blocknotify-catchup.py  > /opt/acme/log/dtc-blocknotify.log 2>&1

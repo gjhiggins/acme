@@ -130,6 +130,7 @@ def main(global_config, **settings):
     config.add_route('chain', '/{net}/chain/')
     config.add_route('blockbrowser', '/{net}/blockbrowser/')
     config.add_route('test', '/{net}/test/')
+    config.add_route('dashboard', '/{net}/dashboard/')
 
     # _session_factory = SignedCookieSessionFactory('roadrunner')
     # config.set_session_factory(_session_factory)

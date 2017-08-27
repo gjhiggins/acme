@@ -4,6 +4,7 @@ import json
 import os
 import requests
 import time
+import textwrap
 from io import StringIO
 from collections import OrderedDict
 import datetime
@@ -11,8 +12,8 @@ from pyramid import testing
 from pyramid.paster import get_appsettings
 from pyramid.settings import asbool
 from lxml import etree
-from jsonschema import validate, exceptions
-from json_schema_generator.recorder import Recorder
+# from jsonschema import validate
+# from json_schema_generator.recorder import Recorder
 from acme.lib.helpers import RPCHost
 
 
@@ -30,9 +31,13 @@ def json2xml(json_obj, line_padding=""):
     if json_obj_type is dict:
         for tag_name in json_obj:
             sub_obj = json_obj[tag_name]
-            result_list.append("{}<{}>".format(line_padding, tag_name.replace(' ', '_')))
-            result_list.append(json2xml(sub_obj, "\t" + line_padding))
-            result_list.append("{}</{}>".format(line_padding, tag_name.replace(' ', '_')))
+            result_list.append("{}<{}>".format(
+                line_padding, tag_name.replace(' ', '_')))
+            result_list.append(
+                json2xml(sub_obj, "\t" + line_padding))
+            result_list.append(
+                "{}</{}>".format(
+                    line_padding, tag_name.replace(' ', '_')))
 
         return "\n".join(result_list)
 
@@ -47,14 +52,17 @@ class AcmeTests(unittest.TestCase):
         self.config = testing.setUp()
         settings = {}
         settings['coins'] = {}
-        for k, val in get_appsettings('../../test.ini', name='main').items():
+        for k, val in get_appsettings(
+                '../../test.ini', name='main').items():
             if k.startswith('coins.'):
                 d, c, v = k.split('.')
                 try:
-                    settings['coins'][c][v] = asbool(val) if val in ['false', 'true'] else val
+                    settings['coins'][c][v] = asbool(
+                        val) if val in ['false', 'true'] else val
                 except KeyError:
                     settings['coins'][c] = {}
-                    settings['coins'][c][v] = asbool(val) if val in ['false', 'true'] else val
+                    settings['coins'][c][v] = asbool(
+                        val) if val in ['false', 'true'] else val
         self.coin = settings['coins']['coin']
         self.rpcconn = RPCHost(
             'http://{rpcuser}:{rpcpass}@localhost:{rpcport}/'.format(
@@ -68,17 +76,24 @@ class AcmeTests(unittest.TestCase):
 
     @unittest.skip("Passed, skipping")
     def test_populate_menu_selection(self):
-        sparql = """SELECT ?height ?dt WHERE { ?block <http://purl.org/net/bel-epa/ccy#height> ?height . ?block <http://purl.org/net/bel-epa/ccy#time> ?dt. """
-        sparqlfltr = """FILTER (?dt < {})"""
-        sparqlordr = """} ORDER BY DESC(?dt) LIMIT 1"""
+        sparql = textwrap.dedent(
+            "SELECT ?height ?dt"
+            "WHERE {" 
+            "  ?block <http://purl.org/net/bel-epa/ccy#height> ?height ."
+            "  ?block <http://purl.org/net/bel-epa/ccy#time> ?dt .")
+        sparqlfltr = "FILTER (?dt < {})"
+        sparqlordr = "} ORDER BY DESC(?dt) LIMIT 1"
         for ym in [
               ["2017", ["01", "02", "03", "04", "05", "06", "07", "08"]],
               ["2016", ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]],
               ["2015", ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]],
-              ["2014", ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]]]:
+              ["2014", ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]],
+              ["2013", ["10", "11", "12"]]]:
             y = ym[0]
             for m in ym[1]:
-                tgt = int(datetime.datetime.strptime('{}-{}-01T00:00:00.000Z'.format(y, m), '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
+                tgt = int(datetime.datetime.strptime(
+                    '{}-{}-01T00:00:00.000Z'.format(y, m),
+                    '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
                 print(sparql + sparqlfltr.format(tgt) + sparqlordr)
 
     # @unittest.skip("Passed, skipping")
@@ -107,7 +122,8 @@ class AcmeTests(unittest.TestCase):
                     self.input += bytes
 
             def map_file(self, file, start):  # Initialize with bytes from file
-                self.input = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
+                self.input = mmap.mmap(
+                    file.fileno(), 0, access=mmap.ACCESS_READ)
                 self.read_cursor = start
 
             def seek_file(self, position):
@@ -120,17 +136,20 @@ class AcmeTests(unittest.TestCase):
                 # Strings are encoded depending on length:
                 # 0 to 252 :  1-byte-length followed by bytes (if any)
                 # 253 to 65,535 : byte'253' 2-byte-length followed by bytes
-                # 65,536 to 4,294,967,295 : byte '254' 4-byte-length followed by bytes
-                # ... and the Bitcoin client is coded to understand:
-                # greater than 4,294,967,295 : byte '255' 8-byte-length followed by bytes of string
-                # ... but I don't think it actually handles any strings that big.
+                # 65,536 to 4,294,967,295 : byte '254' 4-byte-length followed
+                # by bytes ... and the Bitcoin client is coded to understand:
+                # greater than 4,294,967,295 : byte '255' 8-byte-length
+                # followed by bytes of string ... but I don't think it
+                # actually handles any strings that big.
                 if self.input is None:
-                    raise SerializationError("call write(bytes) before trying to deserialize")
+                    raise SerializationError(
+                        "call write(bytes) before trying to deserialize")
 
                 try:
                     length = self.read_compact_size()
                 except IndexError:
-                    raise SerializationError("attempt to read past end of buffer")
+                    raise SerializationError(
+                        "attempt to read past end of buffer")
 
                 return self.read_bytes(length)
 
@@ -141,11 +160,13 @@ class AcmeTests(unittest.TestCase):
 
             def read_bytes(self, length):
                 try:
-                    result = self.input[self.read_cursor:self.read_cursor + length]
+                    result = self.input[
+                        self.read_cursor:self.read_cursor + length]
                     self.read_cursor += length
                     return result
                 except IndexError:
-                    raise SerializationError("attempt to read past end of buffer")
+                    raise SerializationError(
+                        "attempt to read past end of buffer")
 
                 return ''
 
@@ -204,7 +225,8 @@ class AcmeTests(unittest.TestCase):
 
             def write_compact_size(self, size):
                 if size < 0:
-                    raise SerializationError("attempt to write size < 0")
+                    raise SerializationError(
+                        "attempt to write size < 0")
                 elif size < 253:
                     self.write(chr(size))
                 elif size < 2**16:
@@ -218,7 +240,8 @@ class AcmeTests(unittest.TestCase):
                     self._write_num('>Q', size)
 
             def _read_num(self, format):
-                (i,) = struct.unpack_from(format, self.input, self.read_cursor)
+                (i,) = struct.unpack_from(
+                    format, self.input, self.read_cursor)
                 self.read_cursor += struct.calcsize(format)
                 return i
 
@@ -230,15 +253,18 @@ class AcmeTests(unittest.TestCase):
                 pass
 
         ds = BCDataStream()
-        with open("/home/user/.coin/blocks/blk00000.dat", "rb") as file:
+        fn = "/opt/acme/datacoin/.datadir/blocks/blk00000.dat"
+        with open(fn, "rb") as file:
             ds.map_file(file, 0)
 
             # Read file
             # https://bitcoin.org/en/developer-reference#block-headers
             # https://en.bitcoin.it/wiki/Protocol_specification#block
             magic = ds.read_bytes(4).hex()
-            block_size = int(struct.pack('>l', *struct.unpack('<l', ds.read_bytes(4))).hex(), 16)
-            version = struct.pack('>l', *struct.unpack('<l', ds.read_bytes(4))).hex()
+            block_size = int(struct.pack(
+                '>l', *struct.unpack('<l', ds.read_bytes(4))).hex(), 16)
+            version = struct.pack(
+                '>l', *struct.unpack('<l', ds.read_bytes(4))).hex()
             prev_header_hash = ds.read_bytes(32)[::-1].hex()
             merkle_root_hash = ds.read_bytes(32)[::-1].hex()
             timestamp = ds.read_bytes(4)[::-1].hex()
@@ -261,19 +287,23 @@ class AcmeTests(unittest.TestCase):
             pk_script = ds.read_bytes(int(pk_script_len, 16))[::-1].hex()
             lock_time = ds.read_bytes(4)[::-1].hex()
 
-            print('magic: {} (6e, 8b, 92, a5)'.format(magic))
+            print('magic: {} (da, dc, dd, ed)'.format(magic))
             print('block_size: {}'.format(block_size))
             print('version: {}'.format(version))
             print('prevhash: {}'.format(prev_header_hash))
             print('merkle_root: {}'.format(merkle_root_hash))
-            print('timestamp: {} ({})'.format(int(timestamp, 16), datetime.datetime.fromtimestamp(int(timestamp, 16)).isoformat()))
+            print('timestamp: {} ({})'.format(
+                int(timestamp, 16), datetime.datetime.fromtimestamp(
+                    int(timestamp, 16)).isoformat()))
             print('nBits: {}'.format(nBits))
             print('nonce: {}'.format(int(nonce, 16)))
 
-            print('--------------------- Transaction Details: ---------------------')
+            print('----------------- Transaction Details: -----------------')
             print('num_of_transaction: {}'.format(int(num_of_transaction, 16)))
             print('tx_version: {}'.format(tx_version))
-            print('tx_ntime: {} ({})'.format(int(tx_ntime, 16), datetime.datetime.fromtimestamp(int(tx_ntime, 16)).isoformat()))
+            print('tx_ntime: {} ({})'.format(
+                int(tx_ntime, 16), datetime.datetime.fromtimestamp(
+                    int(tx_ntime, 16)).isoformat()))
             print('tx_input_num: {}'.format(int(tx_input, 16)))
             print('tx_prev_output_hash: {}'.format(tx_prev_output_hash))
             print('tx_prev_output_num: {}'.format(tx_prev_output_num))
@@ -286,7 +316,9 @@ class AcmeTests(unittest.TestCase):
             print('pk_script_len: {}'.format(pk_script_len))
             print('pk_script: {}'.format(pk_script))
             print('lock_time: {}'.format(lock_time))
-            print('lock_time: {} ({})'.format(int(timestamp, 16), datetime.datetime.fromtimestamp(int(lock_time, 16)).isoformat()))
+            print('lock_time: {} ({})'.format(
+                int(timestamp, 16), datetime.datetime.fromtimestamp(
+                    int(lock_time, 16)).isoformat()))
 
         ds.close_file()
 
@@ -294,8 +326,18 @@ class AcmeTests(unittest.TestCase):
     def test_sparqlemission(self):
         sym = self.coin.symbol.lower()
         testnet = False
-        mainnetquery = """http://localhost.com:3030/{}chain/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0ASELECT+%3Fheight+%3Fdt%0AWHERE+%7B%0A++%3Fblock+ccy%3Aheight+%3Fheight+.%0A++%3Fblock+ccy%3Atime+%3Fdt.+%0A++FILTER(%3Fdt+%3C+{timestamp})%0A%7D%0AORDER+BY+DESC(%3Fdt)+LIMIT+1""".format(sym)
-        testnetquery = """http://localhost:3030/{}tchain/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0ASELECT+%3Fheight+%3Fdt%0AWHERE+%7B%0A++%3Fblock+ccy%3Aheight+%3Fheight+.%0A++%3Fblock+ccy%3Atime+%3Fdt.+%0A++FILTER(%3Fdt+%3C+{timestamp})%0A%7D%0AORDER+BY+DESC(%3Fdt)+LIMIT+1""".format(sym)
+        mainnetquery = \
+            "http://localhost.com:3030/{}chain/sparql?query=PREFIX+ccy%3" + \
+            "A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0ASE" + \
+            "LECT+%3Fheight+%3Fdt%0AWHERE+%7B%0A++%3Fblock+ccy%3Aheight+" + \
+            "%3Fheight+.%0A++%3Fblock+ccy%3Atime+%3Fdt.+%0A++FILTER(%3Fd" + \
+            "t+%3C+{timestamp})%0A%7D%0AORDER+BY+DESC(%3Fdt)+LIMIT+1""".format(sym)
+        testnetquery = \
+            "http://localhost:3030/{}tchain/sparql?query=PREFIX+ccy%3A+%3" + \
+            "Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0ASELECT+" + \
+            "%3Fheight+%3Fdt%0AWHERE+%7B%0A++%3Fblock+ccy%3Aheight+%3Fhei" + \
+            "ght+.%0A++%3Fblock+ccy%3Atime+%3Fdt.+%0A++FILTER(%3Fdt+%3C+{" + \
+            "timestamp})%0A%7D%0AORDER+BY+DESC(%3Fdt)+LIMIT+1""".format(sym)
         if testnet:
             query = testnetquery
             psz = datetime.date(year=2017, month=4, day=15)
@@ -310,10 +352,15 @@ class AcmeTests(unittest.TestCase):
             if day % 100 == 0:
                 print(day)
             ptr += nextday
-            # print('{}-{}-{}T00:00:00.000Z'.format(ptr.year, ptr.month, ptr.day))
-            ts = int(datetime.datetime.strptime('{}-{}-{}T00:00:00.000Z'.format(ptr.year, ptr.month, ptr.day), '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
+            # print('{}-{}-{}T00:00:00.000Z'.format(
+            #     ptr.year, ptr.month, ptr.day))
+            ts = int(datetime.datetime.strptime(
+                '{}-{}-{}T00:00:00.000Z'.format(
+                    ptr.year, ptr.month, ptr.day),
+                '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
             # print(query.format(timestamp=ts))
-            res = requests.get(query.format(timestamp=ts)).content.decode('utf-8')
+            res = requests.get(
+                query.format(timestamp=ts)).content.decode('utf-8')
             # print(res)
             resd = json.loads(res)
             height = resd['results']['bindings'][0]['height']['value']
@@ -403,12 +450,16 @@ class AcmeTests(unittest.TestCase):
         ptr = psz = datetime.date(year=2017, month=4, day=15) if testnet \
             else datetime.date(year=2014, month=5, day=28)
         nextday = datetime.timedelta(days=1)
-        with open('{}-daystats.csv'.format('testnet' if testnet else 'mainnet'), 'w') as fp:
+        with open('{}-daystats.csv'.format(
+                'testnet' if testnet else 'mainnet'), 'w') as fp:
             for day in range(0, (datetime.date.today() - psz).days):
                 # if day > 1:
                 #     break
-                fromdate = int(datetime.datetime.strptime('{}-{}-{}T00:00:00.000Z'.format(
-                    ptr.year, ptr.month, ptr.day), '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
+                fromdate = int(
+                    datetime.datetime.strptime(
+                        '{}-{}-{}T00:00:00.000Z'.format(
+                            ptr.year, ptr.month, ptr.day),
+                        '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
                 # print('{}-{}-{}T00:00:00.000Z'.format(ptr.year, ptr.month, ptr.day))
                 ptr += nextday
                 todate = int(datetime.datetime.strptime(
@@ -431,7 +482,9 @@ class AcmeTests(unittest.TestCase):
                         b=bdate, h=height, t=ptr, m=mint, d=diff, f=flags)
                     fp.write(datum)
                 except Exception as e:
-                    print("Day {}-{}, {}".format(datetime.datetime.fromtimestamp(fromdate), datetime.datetime.fromtimestamp(todate), e))
+                    print("Day {}-{}, {}".format(
+                        datetime.datetime.fromtimestamp(fromdate),
+                        datetime.datetime.fromtimestamp(todate), e))
                     raise Exception(e)
             fp.close()
             # print(datum)
