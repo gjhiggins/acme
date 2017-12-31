@@ -96,7 +96,7 @@ def home(request):
             blcn['time'], "%Y-%m-%d %H:%M:%S %Z")
     request.tmpl_context.now = datetime.utcnow()
     query = request.tmpl_context.endpoint + '/' + request.tmpl_context.dataset + "/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0Aselect++(SUM(%3Fvalue)+as+%3Ftotal_slm_burned)+WHERE%0A%7B+%3Ftxo+ccy%3Aaddress+ccy%3ASfSLMCoinMainNetworkBurnAddr1DeTK5+.%0A++%3Ftxo+ccy%3Avalue+%3Fvalue%0A%7D" if 'proof-of-burn' in request.tmpl_context.scheme else ''
-    request.tmpl_context.netburnedcoins = json.loads(requests.get(query).content.decode('utf-8'))['results']['bindings'][0]['total_slm_burned']['value']if 'proof-of-burn' in request.tmpl_context.scheme else 0
+    request.tmpl_context.netburnedcoins = json.loads(requests.get(query).content.decode('utf-8'))['results']['bindings'][0]['total_slm_burned']['value'] if 'proof-of-burn' in request.tmpl_context.scheme else 0
 
     diff = request.tmpl_context.acmerpc.call('getdifficulty')
     request.tmpl_context.curpowdiff = '{:.6f}'.format(diff['proof-of-work'] if isinstance(diff, dict) else diff) if 'proof-of-work' in request.tmpl_context.scheme else 0
@@ -122,7 +122,7 @@ def home(request):
 
     blocks = calendarise(request, blocks)
     request.tmpl_context.blocks = blocks
-    request.tmpl_context.difflag = difflag(blocks, scheme=['proof-of-work', 'proof-of-stake', 'proof-of-burn'])
+    request.tmpl_context.difflag = difflag(blocks, scheme=['proof-of-work'])
     return request.tmpl_context.__dict__
 
 
@@ -355,10 +355,14 @@ def txs(request):
     for bnum in range(toffset, toffset - 20, -1):
         bhash = request.tmpl_context.acmerpc.call('getblockhash', bnum)
         bblock = request.tmpl_context.acmerpc.call('getblock', bhash)
+        if request.tmpl_context.coin.get('blockdateformat', 'formatted') == 'seconds':
+            btime = datetime.fromtimestamp(bblock['time'])
+        else:
+            btime = datetime.strptime(bblock['time'], request.tmpl_context.coin.get('strftimeformat'))
         txs.append([[
             request.tmpl_context.acmerpc.call('getrawtransaction', txid, 1) for txid in bblock['tx']],
             bblock['height'],
-            datetime.strptime(bblock['time'], request.tmpl_context.coin.get('txdateformat')).isoformat()
+            btime.isoformat()
         ])
     request.tmpl_context.txs = txs
     request.tmpl_context.dump = '''<pre>{}</pre>'''.format(json.dumps(txs, sort_keys=True, indent=2, separators=(',', ': ')))
@@ -771,16 +775,57 @@ def blockbrowser(request):
     return request.tmpl_context.__dict__
 
 
+@view_config(route_name='chain', renderer='acme:templates/chain.mako')
+def chain(request):
+    binfo = request.tmpl_context.coin['binfo']
+    with open('acme/static/css/gaps.json', 'r') as fp:
+        request.tmpl_context.gaps = json.loads(fp.read())
+    fp.close()
+    request.tmpl_context.flds = [
+        'height',
+        'primechain',
+        'primedigit',
+        'mineraddress',
+        'primeorigin',
+        'primorialform',
+        'time',
+        'ismine', 
+    ]
+    request.tmpl_context.dump = ""
+    return request.tmpl_context.__dict__
+
+
 @view_config(route_name='test', renderer='acme:templates/test.mako')
 def test(request):
-    sym = request.tmpl_context.coin['symbol'].lower()
     binfo = request.tmpl_context.coin['binfo']
     sparqlquery = \
-        "http://localhost:3030/{sym}chain/sparql?query=SELECT+*+WHERE" \
+        "http://localhost:3030/dtcchain/sparql?query=SELECT+*+WHERE" \
         "+%7B%3Fs+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23height%3E+" \
-        "1000+.+%3Fs+%3Fp+%3Fo+.+%7D".format(sym)
+        "1000+.+%3Fs+%3Fp+%3Fo+.+%7D"
     request.tmpl_context.sparqljson = \
         requests.get(sparqlquery).content.decode('utf-8')
     request.tmpl_context.query = request.matchdict.get('arg')
+    request.tmpl_context.dump = ""
+    return request.tmpl_context.__dict__
+
+
+@view_config(route_name='dashboard', renderer='acme:templates/dashboard.mako')
+def dashboard(request):
+    binfo = request.tmpl_context.coin['binfo']
+    """
+        PREFIX ccy: <http://purl.org/net/bel-epa/ccy#>
+        SELECT ?block ?height WHERE {
+            ?block ccy:height ?height
+        } ORDER BY DESC(?height) LIMIT 1
+    """
+    qs = "/sparql?query=PREFIX+rdf%3A+%3Chttp%3A%2F%2Fwww.w3.org%2F1999%2F" + \
+         "02%2F22-rdf-syntax-ns%23%3E%0ASELECT+%3Fsubject+%3Fheight+WHERE+%" + \
+         "7B+%3Fsubject+rdf%3Atype+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa" + \
+         "%2Fccy%23Block%3E+.+%3Fsubject+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fb" + \
+         "el-epa%2Fccy%23height%3E+%3Fheight+%7D+ORDER+BY+DESC(%3Fheight)+LIMIT+1"
+    query = request.tmpl_context.endpoint + '/' + request.tmpl_context.dataset + qs
+    request.tmpl_context.gblocks = json.loads(
+        requests.get(query).content.decode('utf-8'))[
+            'results']['bindings'][0]['height']['value']
     request.tmpl_context.dump = ""
     return request.tmpl_context.__dict__

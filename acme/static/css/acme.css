@@ -176,7 +176,7 @@ a[name] {
   line-height:1.5rem;
 }
 
-#modaldiv, .modalBody, .actions {color: #f8f8f8; background: #444 url(/img/assets/midgray_paper.png) repeat!important;}
+#modaldiv, .modalBody, .actions {color: #f8f8f8; background: #444 url(/img/midgray_paper.png) repeat!important;}
 
 .glit { color: rgb(255, 230, 30); text-transform: uppercase; }
 .mission { font-size: 0.2em; color: rgba(255, 246, 142, 1) }

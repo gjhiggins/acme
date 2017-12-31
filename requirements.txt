@@ -1,0 +1,8 @@
+requests
+pyramid
+pyramid_mako
+pyramid_debugtoolbar
+waitress
+rdflib
+pyqrcode
+lxml

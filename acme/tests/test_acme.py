@@ -11,9 +11,41 @@ from pyramid import testing
 from pyramid.paster import get_appsettings
 from pyramid.settings import asbool
 from lxml import etree
-from jsonschema import validate, exceptions
-from json_schema_generator.recorder import Recorder
+# from jsonschema import validate, exceptions
+# from json_schema_generator.recorder import Recorder
 from acme.lib.helpers import RPCHost
+import psycopg2
+import requests
+import time
+import blocknotifybase
+
+global blockhash
+debug = False
+test = False
+
+MAX_BLOCK_HEIGHT = None # The block number marking the end of the public ledger, -1 for “latest block”
+# MAX_BLOCK_HEIGHT = 1000
+
+blockattrs = [
+  "adder",
+  "chainwork",
+  # "confirmations",
+  "difficulty",
+  "gapend",
+  "gaplen",
+  "gapstart",
+  "hash",
+  "height",
+  "merit",
+  "merkleroot",
+  "nextblockhash",
+  "nonce",
+  "previousblockhash",
+  "shift",
+  "size",
+  "time",
+  # "version"
+]
 
 
 def json2xml(json_obj, line_padding=""):
@@ -55,16 +87,109 @@ class AcmeTests(unittest.TestCase):
                 except KeyError:
                     settings['coins'][c] = {}
                     settings['coins'][c][v] = asbool(val) if val in ['false', 'true'] else val
-        self.coin = settings['coins']['coin']
+        self.coin = settings['coins'].get('coin')
         self.rpcconn = RPCHost(
-            'http://{rpcuser}:{rpcpass}@localhost:{rpcport}/'.format(
-                rpcuser=self.coin.get('rpcuser', ''),
-                rpcpass=self.coin.get('rpcpass', ''),
-                rpcport=int(self.coin.get('testnetrpcport', '9999'))))
+            'http://{rpcuser}:{rpcpass}@localhost:{rpcport}/'.format(**locals()))
+
+        # self.conn = psycopg2.connect(
+        #     "dbname={} user={} password={}".format(
+        #         self.ecoin.get('dbname')
+        #         self.ecoin.get('dbuser')
+        #         self.ecoin.get('dbpass')))
+
+        # # Open a cursor to perform database operations
+        # self.cursor = self.conn.cursor()
+
+        # self.cursor.execute('''CREATE TABLE  IF NOT EXISTS blocks (
+        #     adder integer,
+        #     chainwork integer,
+        #     difficulty number,
+        #     gapend text,
+        #     gaplen integer,
+        #     gapstart text,
+        #     height integer,
+        #     merit number,
+        #     shift integer,
+        #     "time" integer
+        #     )''')
+        # self.cursor.execute('''CREATE INDEX IF NOT EXISTS merit_index ON blocks USING HASH (merit);''')
+        # self.cursor.execute('''CREATE INDEX IF NOT EXISTS gaplen_index ON blocks USING HASH (gaplen);''')
 
     def tearDown(self):
-        """Teardown."""
+        # self.cursor.execute('''DROP TABLE IF EXISTS blocks;''')
+        # self.conn.commit()
+        # self.conn.close()
+        # os.unlink('gapcoin.db')
         testing.tearDown()
+
+    @unittest.skip("Passed, skipping")
+    def test_readblock(self):
+        binfo = self.rpcconn.call('getinfo')
+        last_block_in_db = self.cursor.execute('''select max(height) from blocks''').fetchone()[0] or 0
+        blocknum = binfo['blocks'] if MAX_BLOCK_HEIGHT is None else MAX_BLOCK_HEIGHT
+        if last_block_in_db < blocknum:
+            print("Catching up from {} to {}".format(last_block_in_db, blocknum))
+        for i in range(last_block_in_db + (1 if last_block_in_db > 0 else 0), blocknum):
+            block = self.rpcconn.call('getblock', self.rpcconn.call('getblockhash', i))
+            query = """insert into blocks (adder, chainwork, difficulty, gapend, gaplen, gapstart, height, merit, shift, time) VALUES ({adder}, {chainwork}, {difficulty}, '{gapend}', {gaplen}, '{gapstart}', {height}, {merit}, {shift}, {time})""".format(
+                **block)
+            self.cursor.execute(query)
+            if i % 10000 == 0:
+                print(i)
+                self.conn.commit()
+        self.conn.commit()
+
+    @unittest.skip("Passed, skipping")
+    def test_doreadblock(self):
+        binfo = self.rpcconn.call('getinfo')
+        last_block_in_db = self.cursor.execute('''select max(height) from blocks''').fetchone()[0] or 0
+        blocknum = binfo['blocks'] if MAX_BLOCK_HEIGHT is None else MAX_BLOCK_HEIGHT
+        if last_block_in_db < blocknum:
+            print("Catching up from {} to {}".format(last_block_in_db, blocknum))
+        for i in range(last_block_in_db + (1 if last_block_in_db > 0 else 0), blocknum):
+            block = self.rpcconn.call('getblock', self.rpcconn.call('getblockhash', i))
+            query = """insert into blocks (adder, chainwork, difficulty, gapend, gaplen, gapstart, height, merit, shift, time) VALUES ({adder}, {chainwork}, {difficulty}, '{gapend}', {gaplen}, '{gapstart}', {height}, {merit}, {shift}, {time})""".format(
+                **block)
+            self.cursor.execute(query)
+        #     # FOR EACH TX
+        #     for txid in block.get('tx'):
+        #         tx = self.amerpc.call('decoderawtransaction', self.amerpc.call('getrawtransaction', txid))
+        #         # SPENT TXS, REMOVE FROM UTXO SET
+        #         for txin in tx.get('vin'):
+        #             if "coinbase" not in txin.keys():
+        #                 query = """delete from outputs where txhsh='{}' and seq={};""".format(
+        #                         txin["txid"], txin["vout"])
+        #                 self.cursor.execute(query)
+        #         # UNSPENT TXS, ADD TO UTXO SET
+        #         for txout in tx.get('vout'):
+        #             scripttype = txout["scriptPubKey"]["type"]
+        #             if scripttype in ["pubkeyhash", "pubkey", "scripthash"]:
+        #                 query = "insert into outputs (bnum, tx, bhsh, txhsh, seq, addr, bal) " + \
+        #                         "values ({}, '{}', '{}', '{}', {}, '{}', {});".format(
+        #                             i, scripttype, block["hash"], txid, txout["n"],
+        #                             txout["scriptPubKey"]["addresses"][0],
+        #                             txout["value"])
+        #                 self.cursor.execute(query)
+        #             elif scripttype in ["nonstandard", "multisig"]:
+        #                 query = "insert into outputs (bnum, tx, bhsh, txhsh, seq, addr, bal) " + \
+        #                         "values ({}, '{}', '{}', '{}', {}, '** {} **', {});".format(
+        #                             i, scripttype, block["hash"], txid, txout["n"],
+        #                             scripttype, txout["value"])
+        #                 self.cursor.execute(query)
+        #             else:
+        #                 raise Exception(
+        #                     "Don't know how to handle {} scripts in transaction {}".format(
+        #                         scripttype, txid))
+            if i % 10000 == 0:
+                print(i)
+                self.conn.commit()
+        self.conn.commit()
+
+    @unittest.skip("Passed, skipping")
+    def test_basic_api(self):
+        # Test blockinfo schema
+        binfo = self.rpcconn.call('getrawtransaction', '007e7020acbdafcce9f044c0a6bf66b3d7e194f4fc86efb5e12be06bb28c545e', 1)
+        print(json.dumps(binfo, sort_keys=True, indent=2, separators=(',', ': ')))
 
     @unittest.skip("Passed, skipping")
     def test_populate_menu_selection(self):
@@ -72,16 +197,16 @@ class AcmeTests(unittest.TestCase):
         sparqlfltr = """FILTER (?dt < {})"""
         sparqlordr = """} ORDER BY DESC(?dt) LIMIT 1"""
         for ym in [
-              ["2017", ["01", "02", "03", "04", "05", "06", "07", "08"]],
+              ["2017", ["01", "02", "03", "04"]],
               ["2016", ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]],
               ["2015", ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]],
-              ["2014", ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"]]]:
+              ["2014", ["05", "06", "07", "08", "09", "10", "11", "12"]]]:
             y = ym[0]
             for m in ym[1]:
                 tgt = int(datetime.datetime.strptime('{}-{}-01T00:00:00.000Z'.format(y, m), '%Y-%m-%dT%H:%M:%S.%fZ').timestamp())
                 print(sparql + sparqlfltr.format(tgt) + sparqlordr)
 
-    # @unittest.skip("Passed, skipping")
+    @unittest.skip("Passed, skipping")
     def test_extract_genesis_tx(self):
         import struct  # convert between Python values and C structsrepresented as Python strings
         try:
@@ -291,6 +416,103 @@ class AcmeTests(unittest.TestCase):
         ds.close_file()
 
     @unittest.skip("Passed, skipping")
+    def test_schema(self):
+        """Test schemas."""
+        forreal = True
+        newuns = 0
+        schemas = {}
+        txschemas = {}
+        for i in ['getinfo', 'getblock', 'getrawtransaction']:
+            with open(os.getcwd() + '/schemas/{}_schema.json'.format(i)) as fp:
+                schemas[i] = json.loads(fp.read())
+            fp.close()
+
+        d = [x for x in os.listdir(os.getcwd() + '/schemas/getrawtransaction') if 'schema' in x]
+        for j in d:
+            with open(os.getcwd() + '/schemas/getrawtransaction/{}'.format(j)) as fp:
+                txschemas[j] = json.loads(fp.read())
+            fp.close()
+
+        # Test blockinfo schema
+        binfo = self.rpcconn.call('getinfo')
+        if forreal:
+            validate(binfo, schemas['getinfo'])
+
+        for nheight in range(1, binfo.get('blocks') + 1):
+            if nheight % 500 == 0:
+                print(nheight)
+            print(nheight)
+            blockhash = self.rpcconn.call('getblockhash', nheight)
+            block = self.rpcconn.call('getblock', blockhash)
+            if forreal:
+                try:
+                    validate(block, schemas['getblock'])
+                except exceptions.ValidationError as e:
+                    raise Exception("{} {}".format(e, block))
+            for tx in block['tx']:
+                transaction = self.rpcconn.call('getrawtransaction', tx, 1)
+                if forreal:
+                    validated = False
+                    try:
+                        xmltr = StringIO(
+                            '<?xml version="1.0"?>\n'
+                            '<transaction>\n{}\n</transaction>\n'.format(
+                                json2xml(transaction)))
+                        with open(os.getcwd() + '/schemas/transaction.rng', 'r') as fp:
+                            relaxng_doc = etree.parse(fp)
+                        relaxng = etree.RelaxNG(relaxng_doc)
+                        try:
+                            doc = etree.parse(xmltr)
+                        except Exception as e:
+                            print(xmltr.read())
+                            raise Exception(e)
+                        try:
+                            relaxng.assertValid(doc)
+                        except Exception as e:
+                            print("{} {}".format(e, xmltr.read()))
+                            raise Exception(e)
+                        # validate(transaction, schemas['getrawtransaction'])
+                    except exceptions.ValidationError as e:
+                        print(json2xml(transaction))
+                        # for label, schema in txschemas.items():
+                        #     try:
+                        #         validate(transaction, schema)
+                        #         validated = True
+                        #         break
+                        #     except exceptions.ValidationError as e:
+                        #         pass
+                        # if not validated:
+                        #     with open(os.getcwd() + '/schemas/getrawtransaction/{}.json'.format(newuns), 'wb') as fp:
+                        #         fp.write(json.dumps(transaction, sort_keys=True, indent=2, separators=(',', ': ')).encode('utf-8'))
+                        #     fp.close()
+                        #     res = Recorder.from_string(json.dumps(transaction))
+                        #     res.save_json_schema(os.getcwd() + '/schemas/getrawtransaction/{}_schema.json'.format(newuns), indent=4)
+                        #     # schemas['getblock']
+                        #     newuns += 1
+
+    @unittest.skip("Passed, skipping")
+    def test_fixup(self):
+        """Test schemas."""
+        schemas = {}
+        for i in ['getinfo', 'getblock', 'getrawtransaction']:
+            with open(os.getcwd() + '/schemas/{}_schema.json'.format(i)) as fp:
+                schemas[i] = json.loads(fp.read())
+            fp.close()
+
+        txid = "be151c377da175c2a06e8d8e103575e27440c9819258a92dc80753d144d93019"
+        tx = self.rpcconn.call('getrawtransaction', txid, 1)
+        # validate(block, schemas['getrawtransaction'])
+        try:
+            validate(tx, schemas['getrawtransaction'])
+        except exceptions.ValidationError as e:
+            with open(os.getcwd() + '/schemas/getrawtransaction_no_coinbase.json', 'wb') as fp:
+                fp.write(json.dumps(tx, sort_keys=True, indent=2, separators=(',', ': ')).encode('utf-8'))
+            fp.close()
+            res = Recorder.from_string(json.dumps(tx))
+            res.save_json_schema(os.getcwd() + '/schemas/getrawtransaction_no_coinbase.json', indent=4)
+            # schemas['getblock']
+
+    @unittest.skip("Passed, skipping")
     def test_sparqlemission(self):
         sym = self.coin.symbol.lower()
         testnet = False
@@ -333,6 +555,9 @@ class AcmeTests(unittest.TestCase):
 
         # switch endpoint
         testnet = True
+        testnetflag = 't'
+        endpoint = self.coin['endpoint']
+        sym = self.coin['symbol'].lower()
 
         # template SPARQL query returning the block height of the next minted
         # block after {timestamp}
@@ -343,8 +568,7 @@ class AcmeTests(unittest.TestCase):
             '''ccy%3Atime+%3Fdt.+%0A++FILTER(%3Fdt+%3C+{timestamp})%0''' \
             '''A%7D%0AORDER+BY+DESC(%3Fdt)+LIMIT+1'''
 
-        url = '''http://localhost:3030/{}/sparql'''.format(
-            'slmtchain' if testnet else 'slmchain')
+        url = '''{endpoint}/{sym}{testnetflag}chain/sparql'''.format(**locals())
 
         # Initialise the starting date
         ptr = psz = datetime.date(year=2017, month=4, day=15) if testnet \
@@ -388,9 +612,12 @@ class AcmeTests(unittest.TestCase):
 
     @unittest.skip("Passed, skipping")
     def test_sparqldaystats(self):
+        sym = self.coin['symbol'].lower()
+        endpoint = self.coin['endpoint']
         testnet = True
-        url = 'http://localhost:3030/slmtchain/sparql' if testnet \
-            else 'http://localhost:3030/slmchain/sparql'
+        testnetflag = 't'
+        sym = self.coin.symbol.lower()
+        url = '{endpoint}/{sym}{testnetflag}chain/sparql'.format(**locals)
         query = \
             '?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2F' \
             'ccy%23%3E%0A%23+SELECT+%3Fblock+%3Fheight+WHERE+%7B+%3Fblock+ccy%3' \
@@ -403,7 +630,7 @@ class AcmeTests(unittest.TestCase):
         ptr = psz = datetime.date(year=2017, month=4, day=15) if testnet \
             else datetime.date(year=2014, month=5, day=28)
         nextday = datetime.timedelta(days=1)
-        with open('{}-daystats.csv'.format('testnet' if testnet else 'mainnet'), 'w') as fp:
+        with open('{sym}{testnetflag}-daystats.csv'.format(**locals()), 'w') as fp:
             for day in range(0, (datetime.date.today() - psz).days):
                 # if day > 1:
                 #     break
@@ -436,6 +663,171 @@ class AcmeTests(unittest.TestCase):
             fp.close()
             # print(datum)
 
+    @unittest.skip("Passed, skipping")
+    def test_cmcap(self):
+        import csv
+        with open('cmcap.csv', newline='') as csvfile:
+            datareader = csv.reader(csvfile, delimiter=',', quotechar='"')
+            data = [dict(
+                date=int(datetime.datetime.strptime(row[0], "%b %d %Y").timestamp()),
+                open=row[1],
+                high=row[2],
+                low=row[3],
+                close=row[4],
+                marketcap=row[5]) 
+                    for row in list(datareader)[1:]]
+        print(data)
+
+    @unittest.skip("Passed, skipping")
+    def test_cmcapblocks(self):
+        sym = self.coin['symbol'].lower()
+        endpoint = self.coin['endpoint']
+        testnet = False
+        testnetflag = ''
+        mainnetquery = """{endpoint}/{sym}{testnetflag}chain/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0ASELECT+%3Fheight+%3Fdt%0AWHERE+%7B%0A++%3Fblock+ccy%3Aheight+%3Fheight+.%0A++%3Fblock+ccy%3Atime+%3Fdt.+%0A++FILTER(%3Fdt+%3C+{timestamp})%0A%7D%0AORDER+BY+DESC(%3Fdt)+LIMIT+1"""
+        testnetquery = """{endpoint}/{sym}{testnetflag}chain/sparql?query=PREFIX+ccy%3A+%3Chttp%3A%2F%2Fpurl.org%2Fnet%2Fbel-epa%2Fccy%23%3E%0ASELECT+%3Fheight+%3Fdt%0AWHERE+%7B%0A++%3Fblock+ccy%3Aheight+%3Fheight+.%0A++%3Fblock+ccy%3Atime+%3Fdt.+%0A++FILTER(%3Fdt+%3C+{timestamp})%0A%7D%0AORDER+BY+DESC(%3Fdt)+LIMIT+1"""
+        if testnet:
+            query = testnetquery
+        else:
+            query = mainnetquery
+        with open('cmcap.csv', 'r') as fp:
+            csv = [d.split(',') for d in fp.read().split('\n')][1:]
+        for dt in csv[:1]:
+            ts = int(dt[0])
+            res = requests.get(query.format(timestamp=ts)).content.decode('utf-8')
+            # print(res)
+            resd = json.loads(res)
+            height = resd['results']['bindings'][0]['height']['value']
+            bdate = resd['results']['bindings'][0]['dt']['value']
+            datum = '''{h},{d}\n'''.format(h=height, d=bdate)
+            # with open('emissions.csv', 'a') as fp:
+            #     fp.write(datum)
+            # fp.close()
+            print(datum)
+
+    @unittest.skip("Passed, skipping")
+    def test_activitystreams(self):
+        from lxml import etree
+        with open('data.html', 'r') as fp:
+            html = fp.read()
+        fp.close()
+        root = etree.HTML(html)
+        examples = root.xpath('//div[@class="example"]')
+        for example in examples:
+            title = ''.join(example.xpath('./div[@class="example-title marker"]/span/text()'))
+            content = example.xpath('string()').strip()
+            titlend = content.find('\n')
+            title = content[:titlend]
+            content = content[titlend:].strip()
+            print('{} = """{}"""\n'.format(title.lower().replace(' ', ''), content))
+
+    @unittest.skip("Passed, skipping")
+    def test_asread(self):
+        from examples import examples
+        from rdflib import Graph
+        g = Graph()
+        for label, example in examples.items():
+            g1 = Graph()
+            try:
+                g1.parse(data=example, format="json-ld")
+                g += g1
+            except Exception as e:
+                print(label)
+            del g1
+        print(g.serialize(format="n3").decode('utf-8'))
+
+    @unittest.skip("Passed, skipping")
+    def test_graph_hash(self):
+        from rdflib import Namespace, Literal, URIRef, BNode
+        from rdflib.graph import Graph, ConjunctiveGraph
+        from rdflib.plugins.memory import IOMemory
+        from rdflib.compare import to_isomorphic, _TripleCanonicalizer
+
+
+        ns = Namespace("http://love.com#")
+
+        mary = BNode()
+        john = URIRef("http://love.com/lovers/john#")
+
+        cmary = URIRef("http://love.com/lovers/mary#")
+        cjohn = URIRef("http://love.com/lovers/john#")
+
+        store = IOMemory()
+
+        g = ConjunctiveGraph(store=store)
+        g.bind("love",ns)
+
+        gmary = Graph(store=store, identifier=cmary)
+
+        gmary.add((mary, ns['hasName'], Literal("Mary")))
+        gmary.add((mary, ns['loves'], john))
+
+        gjohn = Graph(store=store, identifier=cjohn)
+        gjohn.add((john, ns['hasName'], Literal("John")))
+
+        print("The internal hash of an named graph is the same as the internal hash of the Conjunctive graph: " +
+              str(to_isomorphic(g).internal_hash() == to_isomorphic(gmary).internal_hash()) + "\n")
+
+        # Prints to 'True'
+
+        print("The internal hash of an named graph is the same as the internal hash of the Conjunctive graph: " +
+              str(_TripleCanonicalizer(g).to_hash() == _TripleCanonicalizer(gmary).to_hash()))
+
+        # Prints to 'False'
+
+
+        # Example how I think to proove the signature of signed graphs:
+        for h in g.objects(mary_public_keys, wot.signed):
+            # First verify the signature
+            if gpg.verify(str(h)):
+                # Second compare hash
+                sigHash = gpg.decrypt(h).data.decode("utf-8").strip() # gpg.decrypt(h): bytes --> string
+                
+                identifier = str(g.value(h, RDFS.label))
+                signedG = g.get_context(identifier)
+                realHash = str(to_isomorphic(signedG).internal_hash())  # Gives the wrong hash?
+                                                                        # (Whath happens with two existing equal identifiers/contexts?)
+                print(sigHash)
+                print(realHash)
+                
+                if sigHash == realHash:
+                    print("Graph verified")
+                
+                else:
+                    print("Signature verified but graph has changed")
+            
+            else:
+                print("Signature verification failed")
+
+
 
 if __name__ == "__main__":
     unittest.main()
+
+
+"""
+PREFIX ccy: <http://purl.org/net/bel-epa/ccy#>
+SELECT ?tx ?bh ?txo ?dt ?asm
+WHERE {
+  ?tx ccy:output ?txo .
+  ?txo ccy:pkasm ?asm .
+    { SELECT ?bh ?dt WHERE {
+        ?tx ccy:blockhash ?bh .
+        ?tx ccy:time ?dt. }
+    LIMIT 1 } . 
+    FILTER regex(?asm, "OP_RETURN")
+} ORDER BY DESC(?dt)
+
+SELECT ?tx ?bh ?txo ?dt ?asm
+WHERE {
+  ?tx ccy:output ?txo .
+  ?txo ccy:pkasm ?asm .
+#  { SELECT DISTINCT ?bh ?dt WHERE {
+#        ?tx ccy:blockhash ?bh .
+#        ?tx ccy:time ?dt. }
+#    LIMIT 1 } . 
+  ?tx ccy:blockhash ?bh .
+  ?tx ccy:time ?dt .
+  FILTER regex(?asm, "OP_RETURN")
+} ORDER BY DESC(?dt)
+"""

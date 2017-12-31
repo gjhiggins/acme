@@ -24,7 +24,7 @@
   <meta property='og:description' content='A Cryptocurrency Metadata Explorer'/>
   <meta property='og:url' content='https://github.com/gjhiggins/acme'/>
   <meta property="og:type" content="article" />
-  <meta property="og:image" content="/img/assets/logo${'_testnet' if net == 'test' else ''}.svg" />
+  <meta property="og:image" content="/img/logo${'_testnet' if net == 'test' else ''}.svg" />
   <meta property="og:site_name" content="ACME" />
   <!-- Dublin Core metadata statements -->
 
@@ -32,16 +32,16 @@
   <link rel="icon" href="/img/favicon${'_testnet' if net == 'test' else ''}.ico" type="image/x-icon" />
   <meta name="ICBM" content="51.96659,-2.481413" />
   <meta name="Robots" content="index, follow" />
-  <link rel="icon" href="/img/assets/favicon${'_testnet' if net == 'test' else ''}.svg" type="image/svg+xml" />
+  <link rel="icon" href="/img/favicon${'_testnet' if net == 'test' else ''}.svg" type="image/svg+xml" />
 
   <!--[if IE]><script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
 
   <!-- For third-generation iPad with high-resolution Retina display: -->
-  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/assets/ico/apple-touch-icon-144x144-precomposed.png" />
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/img/ico/apple-touch-icon-144x144-precomposed.png" />
   <!-- For iPhone with high-resolution Retina display: -->
-  <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/img/assets/ico/apple-touch-icon-114x114-precomposed.png" />
+  <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/img/ico/apple-touch-icon-114x114-precomposed.png" />
   <!-- For first- and second-generation iPad: -->
-  <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/img/assets/ico/apple-touch-icon-72x72-precomposed.png" />
+  <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/img/ico/apple-touch-icon-72x72-precomposed.png" />
   <!-- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices: -->
   <link rel="apple-touch-icon-precomposed" href="/img/assets/ico/apple-touch-icon-57-precomposed.png" />
 

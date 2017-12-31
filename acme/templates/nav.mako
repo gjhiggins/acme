@@ -63,14 +63,14 @@
     <div class="ui simple dropdown item">
       <i class="yellow cubes icon"></i> Connections <i class="dropdown icon"></i>
       <div class="menu">
-        <a class="item" href="https://bitcointalk.org/index.php?topic=0.0">Discussion Thread</a>
-        <a class="item" href="https://github.com/${coin['name'].lower()}-project/${coin['name'].lower()}">Github</a>
-        <a class="item" href="https://twitter.com/${coin['name'].lower()}">#${coin['name'].lower()}coin @ Twitter</a>
+        <a class="item" href="https://bitcointalk.org/index.php?topic=822498.0">Discussion Thread</a>
+        <a class="item" href="https://github.com/gapcoin/gapcoin">Github</a>
+        <a class="item" href="https://twitter.com/Gapcoin">#Gapcoin @ Twitter</a>
         <div class="item">
           <i class="dropdown icon"></i>
           Block Explorers
           <div class="menu transition hidden" tabindex="-1">
-            <a class="item" href="#">Placeholder</a>
+            <a class="item" href="https://chainz.cryptoid.info/gap/">chainz.cryptoid.info</a>
           </div>
         </div>
       </div>

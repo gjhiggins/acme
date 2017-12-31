@@ -47,11 +47,11 @@ def handle_setup(event):
             request.tmpl_context.acmerpc = RPCHost('http://{}:{}@localhost:{}/'.format(
                 coin.get('rpcuser'), coin.get('rpcpass'), coin.get('rpcport')))
             request.tmpl_context.dataset = coin.get('dataset')
-        request.tmpl_context.burnaddress = coin.get('{}burnaddress'.format(request.tmpl_context.net))
         request.tmpl_context.endpoint = coin.get('endpoint')
         request.tmpl_context.nbpp = int(coin.get('nbpp'))
         request.tmpl_context.histoire = histoire
         request.tmpl_context.coin['binfo'] = request.tmpl_context.acmerpc.call('getinfo')
+        request.tmpl_context.coin['binfo']['moneysupply'] = 0
         request.tmpl_context.coin['addrs'] = [
             'addnode={}\n'.format(node.get('addr')).replace(',', '')
             for node in request.tmpl_context.acmerpc.call('getpeerinfo')]

@@ -26,7 +26,7 @@
 <%def name="body()">
   <div class="ui container" style="margin-top:4.6em;">
     <div class="ui inverted segment dark">
-      <div class="ui small header">Slimcoin Address <span class="val">${adattrs.get('addr')}</span></div>
+      <div class="ui small header">Gapcoin Address <span class="val">${adattrs.get('addr')}</span></div>
       <table class="ui inverted striped padded table">
         <tbody>
           <tr>
@@ -71,7 +71,7 @@
               %else:
                 ???
               %endif
-              </span> SLM</td>
+              </span> GAP</td>
           </tr>
           <tr>
             <th> Balance </th>
@@ -81,7 +81,7 @@
             %else:
               ???
             %endif
-              SLM</td>
+              GAP</td>
           </tr>
         </tbody>
       </table>

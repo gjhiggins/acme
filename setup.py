@@ -16,6 +16,7 @@ requires = [
     'waitress',
     'rdflib',
     'pyqrcode'
+    'lxml'
 ]
 
 tests_require = [

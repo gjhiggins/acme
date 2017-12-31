@@ -17,7 +17,7 @@
           <div class="four wide column">
             <h5 class="ui blue inverted header">Resources</h5>
             <div class="ui inverted link list">
-              <a class="item" href="https://iancoleman.github.io/bip39/">BIP39 key generator</a>
+              <a class="item" href="${request.route_url('dashboard', net=net)}" title="Dashboard">Dashboard</a>
               <a class="item" href="https://github.com/${coin['name'].lower()}-project">${coin['name']} source</a>
               <a class="item" href="https://github.com/gjhiggins/acme" target="_blank">ACME source</a>
               <a class="item" href="https://github.com/gjhiggins/acme/issues" target="_blank">ACME issue tracker</a>
@@ -27,9 +27,8 @@
           <div class="four wide column">
             <h5 class="ui blue inverted header">Social media</h5>
             <div class="ui inverted link list">
-              <a class="item" href="https://bitcointalk.org/index.php?topic=325735.0;all">Bitcointalk discussion</a>
+              <a class="item" href="https://bitcointalk.org/index.php?topic=822498.0;all">Bitcointalk discussion</a>
               <a class="item" href="https://twitter.com/${coin['name'].lower()}">Twitter</a>
-              <a class="item" href="http://en.bitcoinwiki.org/${coin['name']}">Bitcoin wiki</a>
               <a class="item" href="https://www.reddit.com/r/${coin['name']}">Reddit forum</a>
             </div>
           </div>
@@ -37,7 +36,7 @@
           <div class="four wide column">
             <h5 class="ui blue inverted header">${coin['name']} Network</h5>
             <div class="ui inverted link list">
-              <a class="item" href="http://${coin['name'].lower()}coin.info">${coin['name'].lower()}coin.info</a>
+              <a class="item" href="http://${coin['name'].lower()}.org">${coin['name'].lower()}.org</a>
             </div>
           </div>
         </div>
