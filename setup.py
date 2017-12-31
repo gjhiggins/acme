@@ -15,7 +15,7 @@ requires = [
     'requests',
     'waitress',
     'rdflib',
-    'pyqrcode'
+    'pyqrcode',
     'lxml'
 ]
 
